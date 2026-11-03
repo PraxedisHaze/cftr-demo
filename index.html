@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CFTR F508del - Interactive 3D Structure Demo</title>
+<style>
+  :root { --bg:#0f172a; --panel:#111c33; --line:#1e293b; --steel:#94a3b8; --text:#e2e8f0; --muted:#94a3b8; --hot:#ff5733; --icl4:#38bdf8; --nbd1:#cbd5e1; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  body { display:flex; flex-direction:column; min-height:100vh; }
+  header { padding:12px 20px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  header h1 { font-size:19px; margin:0; font-weight:650; letter-spacing:.2px; }
+  header h1 .hot { color:var(--hot); }
+  header .sub { color:var(--muted); font-size:13px; }
+  main { flex:1; display:flex; min-height:0; }
+  #stage { flex:1; position:relative; min-width:0; }
+  #viewer { position:absolute; inset:0; }
+  #hud { position:absolute; left:14px; top:12px; z-index:5; font-size:12px; color:var(--muted); background:rgba(15,23,42,.72); border:1px solid var(--line); border-radius:8px; padding:8px 10px; pointer-events:none; line-height:1.5; }
+  #hud b { color:var(--text); }
+  #hud .hotv { color:var(--hot); font-weight:600; }
+  #legend { position:absolute; left:14px; bottom:12px; z-index:5; font-size:11.5px; color:var(--muted); background:rgba(15,23,42,.72); border:1px solid var(--line); border-radius:8px; padding:6px 10px; display:flex; gap:12px; flex-wrap:wrap; }
+  .sw { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:-1px; }
+  aside { width:380px; max-width:42vw; border-left:1px solid var(--line); background:var(--panel); overflow-y:auto; padding:14px 18px 18px; font-size:13.5px; line-height:1.55; }
+  aside h2 { font-size:12px; text-transform:uppercase; letter-spacing:1.2px; color:var(--muted); margin:16px 0 8px; font-weight:600; }
+  aside h2:first-child { margin-top:2px; }
+  .modes { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+  button.mode { background:#0b1324; color:var(--text); border:1px solid #334155; border-radius:7px; padding:8px 6px; font-size:12.5px; cursor:pointer; text-align:left; }
+  button.mode small { display:block; color:var(--muted); font-size:11px; }
+  button.mode.active { border-color:var(--hot); box-shadow:0 0 0 1px var(--hot) inset; }
+  .row { display:flex; align-items:center; gap:8px; margin:6px 0; flex-wrap:wrap; }
+  .row label { color:var(--muted); font-size:12.5px; }
+  select, button.small { background:#0b1324; color:var(--text); border:1px solid #334155; border-radius:6px; padding:5px 8px; font-size:12.5px; cursor:pointer; }
+  input[type=range] { width:100%; accent-color:var(--hot); }
+  #resLabel { font-variant-numeric: tabular-nums; color:var(--text); }
+  .modeinfo { color:var(--muted); font-size:12.5px; margin-top:6px; min-height:38px; }
+  .note { color:var(--muted); font-size:12px; }
+  p { margin:6px 0 8px; }
+  ul { margin:4px 0 8px; padding-left:18px; }
+  footer { border-top:1px solid var(--line); padding:9px 20px; font-size:11.5px; color:var(--muted); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  footer a { color:#93c5fd; text-decoration:none; }
+  footer .cites span { margin-right:14px; }
+  #loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); z-index:4; font-size:14px; }
+  @media (max-width:820px){ main{flex-direction:column;} #stage{height:60vh; flex:none;} aside{width:auto;max-width:none;border-left:none;border-top:1px solid var(--line);} }
+</style>
+</head>
+<body>
+<header>
+  <h1>CFTR <span class="hot">F508del</span> &middot; NBD1 folding defect in 3D</h1>
+  <span class="sub">Cystic fibrosis transmembrane conductance regulator (UniProt P13569) &middot; interactive structure demo</span>
+</header>
+<main>
+  <div id="stage">
+    <div id="viewer"></div>
+    <div id="loading">Loading structure...</div>
+    <div id="hud">
+      <div>Structure: <b id="hudStruct">-</b></div>
+      <div>View: <b id="hudMode">-</b></div>
+      <div>Highlighted: <span class="hotv" id="hudRes">-</span></div>
+      <div id="hudExtra"></div>
+    </div>
+    <div id="legend">
+      <span><i class="sw" style="background:#ff5733"></i>Highlighted residue (C-alpha)</span>
+      <span><i class="sw" style="background:#cbd5e1"></i>NBD1</span>
+      <span><i class="sw" style="background:#38bdf8"></i>ICL4 (cytoplasmic loop 1035-1095)</span>
+      <span><i class="sw" style="background:#94a3b8"></i>Rest of CFTR</span>
+    </div>
+  </div>
+  <aside>
+    <h2>View mode</h2>
+    <div class="modes">
+      <button class="mode" data-mode="overview">Overview<small>Ribbon / cartoon</small></button>
+      <button class="mode" data-mode="surface">Surface Packing<small>Translucent skin</small></button>
+      <button class="mode" data-mode="interface">Interface Lock<small>Contacts around the residue</small></button>
+      <button class="mode" data-mode="spacefill">True Physical Shape<small>Van der Waals spheres</small></button>
+    </div>
+    <div class="modeinfo" id="modeInfo"></div>
+
+    <h2>Residue</h2>
+    <div class="row" style="justify-content:space-between"><span id="resLabel">Phe 508</span><button class="small" id="btn508">Jump to F508</button></div>
+    <input type="range" id="resSlider" min="1" max="1480" value="508" aria-label="Residue number">
+    <div class="note">Drag to fly the highlight along the sequence. Surfaces and contacts refresh when you release.</div>
+
+    <h2>Model</h2>
+    <div class="row">
+      <label for="structSel">Structure</label>
+      <select id="structSel">
+        <option value="af">AlphaFold AF-P13569-F1 (predicted, full length)</option>
+        <option value="6msm">PDB 6MSM (cryo-EM, 3.2 &Aring;)</option>
+      </select>
+    </div>
+    <div class="row">
+      <input type="checkbox" id="trimLow" checked>
+      <label for="trimLow" id="trimLabel">Hide low-confidence regions (pLDDT &lt; 50)</label>
+    </div>
+    <div class="row">
+      <input type="checkbox" id="spin">
+      <label for="spin">Auto-rotate</label>
+      <button class="small" id="btnReset">Reset camera</button>
+    </div>
+
+    <h2>What F508del does</h2>
+    <p>CFTR is a chloride and bicarbonate channel at the surface of epithelial cells in the lungs, pancreas, intestine and sweat glands. F508del is a deletion of three DNA bases that removes a single amino acid, phenylalanine 508, from the first nucleotide-binding domain (NBD1). It is the most common variant that causes cystic fibrosis.</p>
+    <p>Phe508 sits on the NBD1 surface where it packs against the fourth intracellular loop (ICL4) of the second membrane domain. In this model its closest neighbours include Trp496, Arg560, Leu1065, Phe1068, Arg1070 and Phe1074 (see <i>Interface Lock</i>).</p>
+    <p>Losing Phe508 has two linked effects reported in the literature: NBD1 itself folds less efficiently, and NBD1 docks poorly against ICL4. Most of the mutant protein is recognised as misfolded by cellular quality control in the endoplasmic reticulum and degraded, so much less CFTR reaches the cell surface, and the channel that does arrive is less stable and opens less often.</p>
+    <p>Small-molecule "correctors" (for example elexacaftor and tezacaftor, combined with the "potentiator" ivacaftor in the approved therapy Trikafta) help more F508del protein fold and reach the cell surface. These medicines treat the underlying protein defect; they are not a cure.</p>
+    <p class="note">Structures shown are models: the AlphaFold entry is a computational prediction of the normal (wild-type) protein, and 6MSM is an experimental structure of a phosphorylated, ATP-bound CFTR construct carrying the E1371Q mutation. Neither shows the F508del protein itself; the highlight marks where the deleted residue sits. For education and illustration only, not medical advice.</p>
+  </aside>
+</main>
+<footer>
+  <div class="cites">
+    <span>Riordan JR et al. <i>Science</i> 245:1066-1073 (1989)</span>
+    <span>Mendoza JL et al. <i>Cell</i> 148:164-174 (2012)</span>
+    <span>PDB <a href="https://www.rcsb.org/structure/6MSM">6MSM</a>: Zhang, Liu &amp; Chen, <i>PNAS</i> 115:12757 (2018)</span>
+    <span>AlphaFold <a href="https://alphafold.ebi.ac.uk/entry/P13569">AF-P13569-F1</a> (v6): Jumper et al. <i>Nature</i> 2021; Varadi et al. <i>NAR</i> 2022</span>
+    <span>Rendering: <a href="https://3dmol.org">3Dmol.js</a> (BSD-3)</span>
+  </div>
+  <div>Timothy Drake and The Braid Collaborative</div>
+</footer>
+
+<script src="lib/3Dmol-min.js"></script>
+<script>
+  if (typeof $3Dmol === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"><\/script>'); }
+</script>
+<script src="data/data_af.js"></script>
+<script src="data/data_6msm.js"></script>
+<script>
+(function () {
+  'use strict';
+  var COLORS = { bg:'#0f172a', steel:'#94a3b8', hot:'#ff5733', icl4:'#38bdf8', nbd1:'#cbd5e1' };
+  var NBD1 = [423, 646];   // UniProt P13569 "ABC transporter 1" domain
+  var ICL4 = [1035, 1095]; // UniProt cytoplasmic loop between TM10 and TM11
+  var THREE = {ALA:'Ala',ARG:'Arg',ASN:'Asn',ASP:'Asp',CYS:'Cys',GLN:'Gln',GLU:'Glu',GLY:'Gly',HIS:'His',ILE:'Ile',LEU:'Leu',LYS:'Lys',MET:'Met',PHE:'Phe',PRO:'Pro',SER:'Ser',THR:'Thr',TRP:'Trp',TYR:'Tyr',VAL:'Val'};
+  var MODE_INFO = {
+    overview: 'Backbone ribbon of the whole channel. NBD1 is lighter, ICL4 is blue, and the orange sphere marks the C-alpha atom of the highlighted residue.',
+    surface: 'Translucent molecular surface showing how tightly the domains pack. The orange C-alpha marker shows where residue 508 sits beneath the skin.',
+    interface: 'Close-up of every residue (other than its immediate sequence neighbours) with an atom within 6 \u00c5 of the highlighted residue, shown as sticks. At 508 this is the NBD1/ICL4 contact that F508del disrupts.',
+    spacefill: 'Every atom drawn at its van der Waals radius, the true physical bulk of the protein. The highlighted residue is tinted orange; at 508 it lies largely buried in the NBD1/ICL4 contact, so a label marks its position.'
+  };
+  var MODE_NAMES = { overview:'Overview', surface:'Surface Packing', interface:'Interface Lock', spacefill:'True Physical Shape' };
+
+  var viewer = $3Dmol.createViewer(document.getElementById('viewer'), { backgroundColor: COLORS.bg, antialias: true });
+  var state = { struct:'af', mode:'overview', resi:508, trim:true, spin:false };
+  var model = null, caIndex = {}, marker = null, labels = [], minRes = 1, maxRes = 1480;
+
+  function el(id) { return document.getElementById(id); }
+  function inRange(r, a) { return r >= a[0] && r <= a[1]; }
+  function baseColor(atom) {
+    if (atom.resi === state.resi && state.mode !== 'overview' && state.mode !== 'surface') return COLORS.hot;
+    if (inRange(atom.resi, ICL4)) return COLORS.icl4;
+    if (inRange(atom.resi, NBD1)) return COLORS.nbd1;
+    return COLORS.steel;
+  }
+  function hiddenSel() { return { predicate: function (a) { return state.struct === 'af' && state.trim && a.b < 50; } }; }
+  function visibleSel() { return { predicate: function (a) { return !(state.struct === 'af' && state.trim && a.b < 50); } }; }
+
+  function loadStructure(which) {
+    viewer.clear(); labels = []; marker = null;
+    var txt = which === 'af' ? window.PDB_AF : window.PDB_6MSM;
+    model = viewer.addModel(txt, 'pdb');
+    caIndex = {};
+    var atoms = model.selectedAtoms({ atom: 'CA' });
+    minRes = 1e9; maxRes = -1e9;
+    atoms.forEach(function (a) { caIndex[a.resi] = a; if (a.resi < minRes) minRes = a.resi; if (a.resi > maxRes) maxRes = a.resi; });
+    var s = el('resSlider'); s.min = minRes; s.max = maxRes;
+    el('trimLow').disabled = which !== 'af';
+    el('trimLabel').style.opacity = which === 'af' ? 1 : 0.45;
+    el('hudStruct').textContent = which === 'af' ? 'AlphaFold AF-P13569-F1 (v6)' : 'PDB 6MSM (cryo-EM)';
+    applyMode(true);
+  }
+
+  function nearestCA(r) {
+    if (caIndex[r]) return caIndex[r];
+    for (var d = 1; d < 60; d++) { if (caIndex[r + d]) return caIndex[r + d]; if (caIndex[r - d]) return caIndex[r - d]; }
+    return null;
+  }
+
+  // Cheap update used while the slider is being dragged: only the CA marker shape moves.
+  function updateMarker() {
+    if (marker) { viewer.removeShape(marker); marker = null; }
+    var ca = caIndex[state.resi];
+    var info = el('hudExtra');
+    if (!ca) {
+      el('hudRes').textContent = 'residue ' + state.resi + ' (not modelled)';
+      el('resLabel').textContent = 'Residue ' + state.resi + ' - not in this structure';
+      info.textContent = '';
+      viewer.render();
+      return;
+    }
+    var hidden = state.struct === 'af' && state.trim && ca.b < 50;
+    var radius = state.mode === 'spacefill' ? 2.6 : (state.mode === 'interface' ? 1.1 : 2.4);
+    marker = viewer.addSphere({ center: { x: ca.x, y: ca.y, z: ca.z }, radius: radius, color: COLORS.hot, opacity: hidden ? 0.45 : 1.0 });
+    var name = (THREE[ca.resn] || ca.resn) + ' ' + ca.resi;
+    el('hudRes').textContent = name;
+    el('resLabel').textContent = name + (ca.resi === 508 ? '  (deleted in F508del)' : '');
+    var dom = inRange(ca.resi, NBD1) ? 'NBD1' : inRange(ca.resi, ICL4) ? 'ICL4' : inRange(ca.resi, [1210, 1443]) ? 'NBD2' : inRange(ca.resi, [654, 831]) ? 'R region' : '';
+    var conf = state.struct === 'af' ? ('pLDDT ' + ca.b.toFixed(1) + (hidden ? ' (hidden: low confidence)' : '')) : '';
+    info.textContent = [dom, conf].filter(Boolean).join('  |  ');
+    viewer.render();
+  }
+
+  function clearExtras() {
+    // Surfaces are only removed here, never from the slider 'input' (drag) handler.
+    viewer.removeAllSurfaces();
+    labels.forEach(function (l) { viewer.removeLabel(l); });
+    labels = [];
+  }
+
+  // Full rebuild: styles, surfaces, contacts. Called on mode change and slider release only.
+  function applyMode(recenter) {
+    if (!model) return;
+    clearExtras();
+    var cf = { colorfunc: baseColor };
+    viewer.setStyle({}, {});
+    var vis = visibleSel();
+    var ca = caIndex[state.resi];
+    if (state.mode === 'overview') {
+      viewer.setStyle(vis, { cartoon: { colorfunc: baseColor, thickness: 0.5, opacity: 1 } });
+    } else if (state.mode === 'surface') {
+      viewer.setStyle(vis, { cartoon: { colorfunc: baseColor, opacity: 0.9 } });
+      model.setColorByFunction(vis, baseColor);
+      viewer.addSurface($3Dmol.SurfaceType.VDW, { opacity: 0.55 }, vis, vis);
+    } else if (state.mode === 'interface') {
+      viewer.setStyle(vis, { cartoon: { colorfunc: baseColor, opacity: 0.35 } });
+      if (ca) {
+        var near = { and: [vis, { within: { distance: 6, sel: { resi: state.resi } } }], byres: true, not: { resi: [state.resi - 2, state.resi - 1, state.resi, state.resi + 1, state.resi + 2] } };
+        viewer.setStyle(near, { cartoon: { colorfunc: baseColor, opacity: 0.35 }, stick: { colorfunc: baseColor, radius: 0.2 } });
+        var seen = {};
+        model.selectedAtoms(near).forEach(function (a) {
+          if (a.atom !== 'CA' || seen[a.resi]) return; seen[a.resi] = 1;
+          labels.push(viewer.addLabel((THREE[a.resn] || a.resn) + a.resi, { position: { x: a.x, y: a.y, z: a.z }, fontSize: 11, fontColor: 'white', backgroundColor: '#1e293b', backgroundOpacity: 0.75, borderThickness: 0, inFront: true, showBackground: true }));
+        });
+        labels.push(viewer.addLabel((THREE[ca.resn] || ca.resn) + ca.resi + ' (deleted in F508del)'.slice(0, ca.resi === 508 ? 99 : 0), { position: { x: ca.x, y: ca.y, z: ca.z }, screenOffset: { x: 0, y: -26 }, fontSize: 13, fontColor: 'white', backgroundColor: COLORS.hot, backgroundOpacity: 0.9, borderThickness: 0, inFront: true, showBackground: true }));
+      }
+    } else if (state.mode === 'spacefill') {
+      viewer.setStyle(vis, { sphere: { colorfunc: baseColor, scale: 1.0 } });
+    }
+    if ((state.mode === 'surface' || state.mode === 'spacefill') && ca) {
+      labels.push(viewer.addLabel((THREE[ca.resn] || ca.resn) + ca.resi, { position: { x: ca.x, y: ca.y, z: ca.z }, screenOffset: { x: 0, y: -22 }, fontSize: 12, fontColor: 'white', backgroundColor: COLORS.hot, backgroundOpacity: 0.85, borderThickness: 0, inFront: true, showBackground: true }));
+    }
+    updateMarker();
+    if (recenter) focus();
+    el('hudMode').textContent = MODE_NAMES[state.mode];
+    el('modeInfo').textContent = MODE_INFO[state.mode];
+    document.querySelectorAll('button.mode').forEach(function (b) { b.classList.toggle('active', b.dataset.mode === state.mode); });
+    viewer.render();
+  }
+
+  function focus() {
+    var ca = caIndex[state.resi];
+    if (state.mode === 'interface' && ca) {
+      viewer.zoomTo({ within: { distance: 9, sel: { resi: state.resi } } }, 600);
+    } else {
+      viewer.zoomTo(visibleSel(), 600);
+    }
+  }
+
+  // UI wiring
+  document.querySelectorAll('button.mode').forEach(function (b) {
+    b.addEventListener('click', function () { setMode(b.dataset.mode); });
+  });
+  var slider = el('resSlider');
+  slider.addEventListener('input', function () {
+    state.resi = parseInt(slider.value, 10);
+    if (labels.length) { labels.forEach(function (l) { viewer.removeLabel(l); }); labels = []; } // labels are cheap; surfaces are left alone while dragging
+    updateMarker();
+  });
+  slider.addEventListener('change', function () { state.resi = parseInt(slider.value, 10); applyMode(state.mode === 'interface'); });
+  el('btn508').addEventListener('click', function () { setResidue(508, true); });
+  el('structSel').addEventListener('change', function (e) { state.struct = e.target.value; loadStructure(state.struct); });
+  el('trimLow').addEventListener('change', function (e) { state.trim = e.target.checked; applyMode(true); });
+  el('spin').addEventListener('change', function (e) { setSpin(e.target.checked); });
+  el('btnReset').addEventListener('click', function () { focus(); });
+  window.addEventListener('resize', function () { viewer.resize(); viewer.render(); });
+
+  function setMode(m) { state.mode = m; applyMode(true); }
+  function setResidue(r, commit) {
+    state.resi = r; slider.value = r;
+    if (commit) applyMode(state.mode === 'interface'); else updateMarker();
+  }
+  function setSpin(on) { state.spin = on; el('spin').checked = on; viewer.spin(on ? 'y' : false, 0.6); }
+
+  // Small public API (used for scripted screenshots / video capture).
+  window.cftrDemo = { setMode: setMode, setResidue: setResidue, setSpin: setSpin, rotate: function (deg, axis) { viewer.rotate(deg, axis || 'y'); viewer.render(); }, viewer: viewer, state: state };
+
+  loadStructure('af');
+  el('loading').style.display = 'none';
+  window.cftrDemoReady = true;
+})();
+</script>
+</body>
+</html>

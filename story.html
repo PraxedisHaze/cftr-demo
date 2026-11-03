@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CFTR F508del - Story mode</title>
+<style>
+  :root { --bg:#0f172a; --panel:#111c33; --line:#1e293b; --text:#e2e8f0; --muted:#94a3b8; --hot:#ff5733; --icl4:#38bdf8; --nbd1:#fde68a; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+  body { display:flex; flex-direction:column; min-height:100vh; }
+  header { padding:10px 20px; border-bottom:1px solid var(--line); display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; }
+  header h1 { font-size:19px; margin:0; font-weight:650; }
+  header h1 .hot { color:var(--hot); }
+  header .sub { color:var(--muted); font-size:13px; }
+  header a { margin-left:auto; color:#93c5fd; font-size:13px; text-decoration:none; }
+  #stage { flex:1; position:relative; min-height:420px; }
+  #viewer { position:absolute; left:0; right:0; top:0; bottom:120px; }
+  #loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); z-index:4; font-size:15px; }
+  #stepTag { position:absolute; left:16px; top:14px; z-index:6; font-size:13px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); background:rgba(15,23,42,.75); border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
+  #stepTag b { color:var(--text); }
+  #counter { position:absolute; left:16px; top:54px; z-index:6; font-size:15px; background:rgba(15,23,42,.8); border:1px solid var(--hot); border-radius:8px; padding:6px 10px; font-variant-numeric:tabular-nums; display:none; }
+  #counter b { color:var(--hot); font-size:20px; }
+  #scaleTag { position:absolute; left:16px; top:54px; z-index:6; font-size:14px; background:rgba(15,23,42,.82); border:1px solid #38bdf8; border-radius:8px; padding:6px 10px; display:none; }
+  #inset { position:absolute; right:16px; top:14px; z-index:6; width:300px; background:rgba(11,19,36,.88); border:1px solid #334155; border-radius:10px; padding:8px 10px 6px; display:none; }
+  #inset .t { font-size:13px; font-weight:600; margin-bottom:4px; }
+  #inset .row { display:flex; gap:8px; }
+  #inset .cell { flex:1; text-align:center; font-size:11.5px; color:var(--muted); }
+  #inset .cell b { color:var(--text); display:block; font-size:12px; margin-bottom:2px; }
+  #legend { position:absolute; right:16px; bottom:200px; z-index:5; font-size:13px; color:var(--text); background:rgba(15,23,42,.78); border:1px solid var(--line); border-radius:8px; padding:7px 11px; display:flex; flex-direction:column; gap:4px; }
+  #legend span { display:none; }
+  #legend span.on { display:block; }
+  .sw { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:7px; vertical-align:-1px; }
+  #explore { position:absolute; left:16px; bottom:200px; z-index:6; width:290px; background:rgba(15,23,42,.82); border:1px solid var(--line); border-radius:8px; padding:8px 11px; font-size:12.5px; color:var(--muted); }
+  #explore input { width:100%; accent-color:var(--hot); }
+  #explore b { color:var(--text); }
+  #capWrap { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:7; width:min(900px, calc(100% - 32px)); background:rgba(8,13,28,.9); border:1px solid #334155; border-radius:14px; padding:14px 22px 12px; box-shadow:0 8px 30px rgba(0,0,0,.45); }
+  #caption { font-size:23px; line-height:1.4; font-weight:500; min-height:64px; transition:opacity .35s; }
+  #caption em { font-style:normal; color:var(--hot); font-weight:650; }
+  #caption .y { color:var(--nbd1); font-weight:650; }
+  #caption .b { color:var(--icl4); font-weight:650; }
+  #small { font-size:13px; color:var(--muted); margin-top:6px; min-height:18px; transition:opacity .35s; }
+  #controls { display:flex; align-items:center; gap:12px; margin-top:10px; }
+  #controls button { background:#0b1324; color:var(--text); border:1px solid #334155; border-radius:8px; padding:7px 14px; font-size:14px; cursor:pointer; }
+  #controls button:disabled { opacity:.35; cursor:default; }
+  #controls button.primary { border-color:var(--hot); }
+  #dots { display:flex; gap:7px; flex:1; justify-content:center; }
+  #dots i { width:12px; height:12px; border-radius:50%; background:#334155; cursor:pointer; display:block; }
+  #dots i.done { background:#7c2d12; }
+  #dots i.on { background:var(--hot); box-shadow:0 0 0 3px rgba(255,87,51,.3); }
+  #prog { height:3px; background:#1e293b; border-radius:2px; margin-top:9px; overflow:hidden; }
+  #prog div { height:100%; width:0; background:var(--hot); }
+  footer { border-top:1px solid var(--line); padding:9px 20px; font-size:11.5px; color:var(--muted); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+  footer a { color:#93c5fd; text-decoration:none; }
+  footer .cites span { margin-right:14px; }
+  @media (max-width:820px){ #caption{font-size:20px;} #inset{width:220px;} #explore{display:none;} #legend{bottom:auto; top:60px; right:auto; left:16px;} }
+</style>
+</head>
+<body>
+<header>
+  <h1>CFTR <span class="hot">F508del</span> &middot; the story in 9 steps</h1>
+  <span class="sub">What goes wrong in the most common form of cystic fibrosis</span>
+  <a href="index.html">Open the detailed explorer &rarr;</a>
+</header>
+<div id="stage">
+  <div id="viewer"></div>
+  <div id="loading">Loading the 3D model...</div>
+  <div id="stepTag">Step <b id="stepNum">1</b> of <span id="stepTot">9</span> &middot; <b id="stepName">The gate</b></div>
+  <div id="counter">Building block <b id="ctrNum">440</b> <span id="ctrNote"></span></div>
+  <div id="inset"></div>
+  <div id="scaleTag">Shrunk to atom size: each ball is a single atom</div>
+  <div id="legend">
+    <span data-k="hot"><i class="sw" style="background:#ff5733"></i>Building block 508 (Phe508)</span>
+    <span data-k="nbd1"><i class="sw" style="background:#fde68a"></i>The folding piece (NBD1)</span>
+    <span data-k="icl4"><i class="sw" style="background:#38bdf8"></i>Loop from the other half (ICL4)</span>
+    <span data-k="ghost"><i class="sw" style="background:rgba(224,242,254,.5); border:1px solid #e0f2fe"></i>Normal position (faint)</span>
+    <span data-k="pocket"><i class="sw" style="background:transparent; border:2px solid #ff8a65"></i>Empty pocket (where 508 belongs)</span>
+    <span data-k="rest"><i class="sw" style="background:#94a3b8"></i>Rest of the gate</span>
+  </div>
+  <div id="explore">
+    <div>Explore: drag to slide the orange marker along the chain</div>
+    <input type="range" id="resSlider" min="1" max="1480" value="508" step="1" aria-label="Building block number">
+    <div id="exploreLabel">Building block <b>508</b></div>
+  </div>
+  <div id="capWrap">
+    <div id="caption"></div>
+    <div id="small"></div>
+    <div id="controls">
+      <button id="btnBack">&larr; Back</button>
+      <button id="btnPlay" class="primary">&#9654; Play story</button>
+      <div id="dots"></div>
+      <button id="btnNext" class="primary">Next &rarr;</button>
+    </div>
+    <div id="prog"><div></div></div>
+  </div>
+</div>
+<footer>
+  <div class="cites">
+    <span>Riordan JR et al. <i>Science</i> 245:1066-1073 (1989)</span>
+    <span>Mendoza JL et al. <i>Cell</i> 148:164-174 (2012)</span>
+    <span>PDB <a href="https://www.rcsb.org/structure/6MSM">6MSM</a>: Zhang, Liu &amp; Chen, <i>PNAS</i> 115:12757 (2018)</span>
+    <span>AlphaFold <a href="https://alphafold.ebi.ac.uk/entry/P13569">AF-P13569-F1</a> (v6): Jumper et al. <i>Nature</i> 2021; Varadi et al. <i>NAR</i> 2022</span>
+    <span>Rendering: <a href="https://3dmol.org">3Dmol.js</a> (BSD-3)</span>
+  </div>
+  <div>Timothy Drake and The Braid Collaborative</div>
+</footer>
+
+<script src="lib/3Dmol-min.js"></script>
+<script>
+  if (typeof $3Dmol === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"><\/script>'); }
+</script>
+<script src="data/data_af.js"></script>
+<script>
+(function () {
+  'use strict';
+  var C = { bg:'#0f172a', steel:'#94a3b8', dim:'#3b4a63', hot:'#ff5733', icl4:'#38bdf8', nbd1:'#fde68a', sick:'#c98a8a' };
+  var NBD1 = [423, 646], ICL4 = [1035, 1095];
+  var DOMAINS = [[1, 390], [391, 646], [647, 845], [846, 1172], [1173, 1480]]; // TMD1, NBD1, R, TMD2, NBD2 (approximate UniProt boundaries)
+  var STEP_MS = 7500;
+
+  var STEPS = [
+    { name:'The gate', ms:9000,
+      cap:'This is CFTR, a tiny <em>gate</em> in the wall of your cells. It lets salt out, and the water that follows keeps mucus thin and slippery.',
+      small:'One CFTR protein: a chain of 1,480 building blocks (amino acids), folded up. The salt it lets out is chloride.' },
+    { name:'The fold', ms:9000,
+      cap:'To work, the gate has to fold into exactly the right shape, like origami. The <span class="y">yellow piece</span> is the part that goes wrong.',
+      small:'Yellow: NBD1 (nucleotide-binding domain 1), building blocks 423-646.' },
+    { name:'The missing link', ms:10000,
+      cap:'In the most common form of cystic fibrosis, <em>one single building block</em> is missing. Out of 1,480, just this one: number 508.',
+      small:'Phenylalanine 508 (Phe508). Losing it is called F508del.' },
+    { name:'The handshake', ms:19000,
+      cap:'Number 508 sits right where two parts touch, like a handshake: the <span class="y">yellow piece</span> and a <span class="b">blue loop</span> reaching over from the other half of the gate.',
+      small:'NBD1 (yellow) meets ICL4, intracellular loop 4, building blocks 1035-1095 (blue). Phe508 tucks into a pocket on ICL4.' },
+    { name:'Inside the factory', ms:14000,
+      cap:'Shrink down inside the gate, where it is built. Watch the <span class="y">yellow piece</span> fold up and over you until <em>number 508</em> clicks into its pocket on the <span class="b">blue loop</span>.',
+      small:'Atom-scale close-up of the NBD1/ICL4 contact. The folding motion is hand-animated to illustrate the idea; the final locked shape is the real AlphaFold model.' },
+    { name:'Without 508', ms:14000,
+      cap:'Now the same fold with <em>number 508 missing</em>. The <span class="y">yellow piece</span> swings in, but nothing fills the pocket, so it can\u2019t lock. It wobbles, then drifts apart.',
+      small:'Same shot with Phe508 removed (F508del). The glowing ring marks the empty pocket on ICL4.' },
+    { name:'The fold loosens', ms:10000,
+      cap:'Without number 508, the handshake is weak. The <span class="y">yellow piece</span> folds badly and the <span class="b">blue loop</span> can\u2019t grip it.',
+      small:'This step is an illustration, not a simulation: the faint blue shape is the normal position, the shifted loop is drawn to show the idea.' },
+    { name:'Thrown away', ms:9000,
+      cap:'The cell\u2019s quality control spots the badly folded gate and <em>throws most of it away</em>. Few gates reach the wall, salt can\u2019t get out, and mucus turns thick and sticky.',
+      small:'Misfolded CFTR is caught in the endoplasmic reticulum (the cell\u2019s protein factory) and broken down.' },
+    { name:'What medicines do', ms:10000,
+      cap:'Medicines called <span class="y">correctors</span> help more of the gate fold and reach the wall, and a second medicine helps it open. Trikafta combines both.',
+      small:'Trikafta = elexacaftor + tezacaftor (correctors) + ivacaftor (helps the gate open). The 3D shapes are computer models of the normal protein; for education only, not medical advice.' }
+  ];
+
+  function el(id) { return document.getElementById(id); }
+  function inR(r, a) { return r >= a[0] && r <= a[1]; }
+  function ease(t) { return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function mix(c1, c2, t) {
+    var a = parseInt(c1.slice(1), 16), b = parseInt(c2.slice(1), 16);
+    var r = Math.round(lerp(a >> 16, b >> 16, t)), g = Math.round(lerp((a >> 8) & 255, (b >> 8) & 255, t)), bl = Math.round(lerp(a & 255, b & 255, t));
+    return '#' + ((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1);
+  }
+
+  // ---------- viewer + models ----------
+  var viewer = $3Dmol.createViewer(el('viewer'), { backgroundColor: C.bg, antialias: true });
+  var model = viewer.addModel(window.PDB_AF, 'pdb');
+  var atoms = model.selectedAtoms({});
+  atoms.forEach(function (a) { a._ox = a.x; a._oy = a.y; a._oz = a.z; });
+  var ca = {}; model.selectedAtoms({ atom: 'CA' }).forEach(function (a) { ca[a.resi] = a; });
+  var ghostTxt = window.PDB_AF.split('\n').filter(function (l) { if (l.slice(0, 4) !== 'ATOM') return false; var r = parseInt(l.slice(22, 26), 10); return inR(r, ICL4); }).join('\n');
+  var ghost = viewer.addModel(ghostTxt, 'pdb');
+  var icl4m = viewer.addModel(ghostTxt, 'pdb'); // movable copy of ICL4 used only for the step-5 illustration
+  var icl4Atoms = icl4m.selectedAtoms({});
+  icl4Atoms.forEach(function (a) { a._ox = a.x; a._oy = a.y; a._oz = a.z; });
+  function regen(m) { m.setInternalState(m.getInternalState()); } // force 3Dmol to rebuild geometry from edited coordinates
+
+  function centroid(range) {
+    var s = [0, 0, 0], n = 0;
+    for (var r = range[0]; r <= range[1]; r++) { var a = ca[r]; if (a) { s[0] += a._ox; s[1] += a._oy; s[2] += a._oz; n++; } }
+    return { x: s[0] / n, y: s[1] / n, z: s[2] / n };
+  }
+  var cAll = centroid([1, 1480]);
+  var cICL4 = centroid(ICL4), cNBD1 = centroid(NBD1);
+  // Contact centre: NBD1 residues near 508
+  var c508 = { x: ca[508]._ox, y: ca[508]._oy, z: ca[508]._oz };
+  function sub(a, b) { return { x: a.x - b.x, y: a.y - b.y, z: a.z - b.z }; }
+  function norm(v) { var l = Math.hypot(v.x, v.y, v.z) || 1; return { x: v.x / l, y: v.y / l, z: v.z / l }; }
+  var loosenDir = norm(sub(cICL4, c508));
+  var domainDirs = DOMAINS.map(function (d) { return norm(sub(centroid(d), cAll)); });
+  function domainOf(r) { for (var i = 0; i < DOMAINS.length; i++) if (inR(r, DOMAINS[i])) return i; return 0; }
+
+  // Offsets: loosen (ICL4 shift + small twist) and breakup (domains drift apart)
+  var off = { loosen: 0, breakup: 0 };
+  function rotY(p, c, ang) { var s = Math.sin(ang), co = Math.cos(ang), dx = p.x - c.x, dz = p.z - c.z; return { x: c.x + dx * co + dz * s, y: p.y, z: c.z - dx * s + dz * co }; }
+  var lastBreak = -1;
+  function applyLoosen() {
+    icl4Atoms.forEach(function (a) {
+      var p = rotY({ x: a._ox, y: a._oy, z: a._oz }, cICL4, 0.25 * off.loosen);
+      a.x = p.x + loosenDir.x * 8 * off.loosen; a.y = p.y + loosenDir.y * 8 * off.loosen; a.z = p.z + loosenDir.z * 8 * off.loosen;
+    });
+    regen(icl4m);
+  }
+  function applyOffsets() {
+    if (off.breakup === lastBreak) return;
+    lastBreak = off.breakup;
+    atoms.forEach(function (a) {
+      var p = { x: a._ox, y: a._oy, z: a._oz };
+      if (off.breakup) {
+        var d = domainDirs[domainOf(a.resi)], k = 22 * off.breakup;
+        p.x += d.x * k; p.y += d.y * k; p.z += d.z * k;
+      }
+      a.x = p.x; a.y = p.y; a.z = p.z;
+    });
+    regen(model);
+  }
+
+  // ---------- styling ----------
+  var look = { scheme: 'plain', sick: 0, opacity: 1, ghost: false, split: false };
+  function colorFor(a) {
+    var col;
+    var s = look.scheme;
+    if (s === 'plain') col = inR(a.resi, NBD1) ? '#cbd5e1' : C.steel;
+    else if (s === 'nbd1') col = inR(a.resi, NBD1) ? C.nbd1 : C.dim;
+    else if (s === 'contact') col = inR(a.resi, NBD1) ? C.nbd1 : inR(a.resi, ICL4) ? C.icl4 : C.dim;
+    else col = inR(a.resi, NBD1) ? C.nbd1 : inR(a.resi, ICL4) ? C.icl4 : C.steel;
+    if (look.sick) col = mix(col, C.sick, look.sick);
+    return col;
+  }
+  var visSel = { predicate: function (a) { return a.b >= 50; } };
+  var hidSel = { predicate: function (a) { return a.b < 50; } };
+  function restyle() {
+    applyOffsets();
+    model.setStyle({}, {});
+    model.setStyle(visSel, { cartoon: { colorfunc: colorFor, thickness: 0.5, opacity: look.opacity } });
+    model.setStyle(hidSel, {});
+    if (look.split) model.setStyle({ resi: ICL4[0] + '-' + ICL4[1] }, {});
+    applyLoosen();
+    icl4m.setStyle({}, look.split ? { cartoon: { color: C.icl4, thickness: 0.5 } } : {});
+    regen(model);
+    if (look.sticks508) model.setStyle({ resi: 508 }, { cartoon: { colorfunc: colorFor, thickness: 0.5, opacity: look.opacity }, stick: { color: C.hot, radius: 0.32 } });
+    ghost.setStyle({}, look.ghost ? { cartoon: { color: '#e0f2fe', opacity: 0.5, thickness: 0.4 } } : {});
+    if (look.close) closeStyle(); else { nbdA.setStyle({}, {}); nbdB.setStyle({}, {}); }
+    viewer.render();
+  }
+
+  // ---------- marker ----------
+  var marker = null, halo = null, mk = { pos: 508, r: 2.4, opacity: 1, visible: false, halo: 0 };
+  function caPos(r) { var a = ca[Math.max(1, Math.min(1480, r))]; return { x: a.x, y: a.y, z: a.z }; }
+  function chainPos(f) { // Catmull-Rom through consecutive C-alpha atoms
+    var i = Math.floor(f), t = f - i;
+    var p0 = caPos(i - 1), p1 = caPos(i), p2 = caPos(i + 1), p3 = caPos(i + 2);
+    function cr(a, b, c, d) { return 0.5 * ((2 * b) + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t); }
+    return { x: cr(p0.x, p1.x, p2.x, p3.x), y: cr(p0.y, p1.y, p2.y, p3.y), z: cr(p0.z, p1.z, p2.z, p3.z) };
+  }
+  function drawMarker() {
+    if (marker) { viewer.removeShape(marker); marker = null; }
+    if (halo) { viewer.removeShape(halo); halo = null; }
+    if (mk.visible && mk.opacity > 0.02) {
+      var c = chainPos(Math.max(1, Math.min(1479.999, mk.pos)));
+      marker = viewer.addSphere({ center: c, radius: mk.r, color: C.hot, opacity: mk.opacity });
+      if (mk.halo > 0.02) halo = viewer.addSphere({ center: c, radius: mk.r * 1.9, color: C.hot, opacity: 0.25 * mk.halo * mk.opacity });
+    }
+    viewer.render();
+  }
+
+  var fx = [];
+  function clearFx() { fx.forEach(function (s) { viewer.removeShape(s); }); fx = []; }
+  function easeOutBack(t) { var c1 = 1.4, c3 = c1 + 1; return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); }
+
+  // ---------- labels ----------
+  var labels = [];
+  function clearLabels() { labels.forEach(function (l) { viewer.removeLabel(l); }); labels = []; }
+  function label(text, pos, opt) {
+    opt = opt || {};
+    labels.push(viewer.addLabel(text, { position: pos, screenOffset: opt.off || { x: 0, y: 0 }, fontSize: opt.size || 15, fontColor: opt.fc || 'white', backgroundColor: opt.bg || '#1e293b', backgroundOpacity: opt.bo || 0.85, borderThickness: 0, inFront: true, showBackground: true, alignment: opt.align || 'topLeft' }));
+  }
+
+  // ---------- camera ----------
+  function slerp(q1, q2, t) {
+    var d = q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2] + q1[3] * q2[3], b = q2.slice();
+    if (d < 0) { d = -d; b = b.map(function (v) { return -v; }); }
+    if (d > 0.9995) { var r = q1.map(function (v, i) { return lerp(v, b[i], t); }); var l = Math.hypot.apply(null, r); return r.map(function (v) { return v / l; }); }
+    var th = Math.acos(d), s = Math.sin(th), w1 = Math.sin((1 - t) * th) / s, w2 = Math.sin(t * th) / s;
+    return q1.map(function (v, i) { return v * w1 + b[i] * w2; });
+  }
+  function viewLerp(a, b, t) {
+    var q = slerp(a.slice(4, 8), b.slice(4, 8), t);
+    return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t), lerp(a[3], b[3], t)].concat(q);
+  }
+  function computeView(sel, zoomFactor) {
+    viewer.setView(V.base0);
+    viewer.zoomTo(sel);
+    if (zoomFactor) viewer.zoom(zoomFactor);
+    return viewer.getView().slice();
+  }
+  var V = {};
+  viewer.zoomTo(visSel); V.base0 = viewer.getView().slice();
+  V.base = computeView(visSel, 1.0);
+  V.wide = computeView(visSel, 0.78);
+  V.nbd1 = computeView({ resi: NBD1[0] + '-' + NBD1[1], predicate: visSel.predicate }, 0.85);
+  V.contact = computeView({ resi: ['500-512', '1064-1074'] }, 0.75);
+  V.loose = computeView({ resi: ['500-512', '1060-1078'] }, 0.7);
+  viewer.setView(V.base);
+
+  // ---------- close-up "Inside the factory" ----------
+  function cross(a, b) { return { x: a.y * b.z - a.z * b.y, y: a.z * b.x - a.x * b.z, z: a.x * b.y - a.y * b.x }; }
+  function dot(a, b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
+  function addv(a, b, k) { k = k == null ? 1 : k; return { x: a.x + b.x * k, y: a.y + b.y * k, z: a.z + b.z * k }; }
+  function lineRes(l) { return parseInt(l.slice(22, 26), 10); }
+  var atomLines = window.PDB_AF.split('\n').filter(function (l) { return l.slice(0, 4) === 'ATOM'; });
+  var nbdLines = atomLines.filter(function (l) { return inR(lineRes(l), NBD1); });
+  var nbdA = viewer.addModel(nbdLines.join('\n'), 'pdb');                                            // healthy copy
+  var nbdB = viewer.addModel(nbdLines.filter(function (l) { return lineRes(l) !== 508; }).join('\n'), 'pdb'); // F508del copy (Phe508 atoms removed)
+  [nbdA, nbdB].forEach(function (m) { m.selectedAtoms({}).forEach(function (a) { a._ox = a.x; a._oy = a.y; a._oz = a.z; }); });
+  // Interface residues (any heavy atom within 6 A across the NBD1/ICL4 contact), from the real model
+  var nAt = atoms.filter(function (a) { return inR(a.resi, NBD1) && a.b >= 50; }), iAt = atoms.filter(function (a) { return inR(a.resi, ICL4); });
+  var nIf = {}, iIf = {};
+  nAt.forEach(function (a) { iAt.forEach(function (b) { var dx = a._ox - b._ox, dy = a._oy - b._oy, dz = a._oz - b._oz; if (dx * dx + dy * dy + dz * dz < 36) { nIf[a.resi] = 1; iIf[b.resi] = 1; } }); });
+  var nIfList = Object.keys(nIf).map(Number), iIfList = Object.keys(iIf).map(Number);
+  function centroidAtoms(list) { var s = { x: 0, y: 0, z: 0 }; list.forEach(function (a) { s.x += a._ox; s.y += a._oy; s.z += a._oz; }); return { x: s.x / list.length, y: s.y / list.length, z: s.z / list.length }; }
+  var pocket = centroidAtoms(atoms.filter(function (a) { return a.resi === 508 && ['CB', 'CG', 'CD1', 'CD2', 'CE1', 'CE2', 'CZ'].indexOf(a.atom) >= 0; }));
+  var iIfC = centroidAtoms(iAt.filter(function (a) { return iIf[a.resi]; })), nIfC = centroidAtoms(nAt.filter(function (a) { return nIf[a.resi]; }));
+  var U = norm(sub(iIfC, nIfC)); // "up": from the yellow piece toward the blue loop
+  var T = addv(pocket, U, 1.5);   // look-at point, just above the pocket
+  // Camera: low (on the yellow side) looking up, from the emptiest direction so we are not inside a wall of atoms
+  var e1 = norm(cross(U, Math.abs(U.x) < 0.9 ? { x: 1, y: 0, z: 0 } : { x: 0, y: 1, z: 0 })), e2 = cross(U, e1);
+  var visAtoms = atoms.filter(function (a) { return a.b >= 50; });
+  var best = null, CAM_D = 15;
+  for (var k = 0; k < 24; k++) {
+    var ang = k * Math.PI / 12, side = addv({ x: Math.cos(ang) * e1.x, y: Math.cos(ang) * e1.y, z: Math.cos(ang) * e1.z }, e2, Math.sin(ang));
+    var bdir = norm(addv(side, U, -0.45)), score = 0;
+    visAtoms.forEach(function (a) {
+      var v = { x: a._ox - T.x, y: a._oy - T.y, z: a._oz - T.z }, s2 = dot(v, bdir);
+      if (s2 < 3 || s2 > CAM_D + 3) return;
+      var perp = addv(v, bdir, -s2); if (dot(perp, perp) < 16) score++;
+    });
+    if (!best || score < best.score) best = { score: score, dir: bdir };
+  }
+  var CAM_DIR = best.dir;
+  function quatFromRows(r, u, b) { // rows of a rotation matrix -> [x,y,z,w]
+    var m00 = r.x, m01 = r.y, m02 = r.z, m10 = u.x, m11 = u.y, m12 = u.z, m20 = b.x, m21 = b.y, m22 = b.z, tr = m00 + m11 + m22, s;
+    if (tr > 0) { s = 0.5 / Math.sqrt(tr + 1); return [(m21 - m12) * s, (m02 - m20) * s, (m10 - m01) * s, 0.25 / s]; }
+    if (m00 > m11 && m00 > m22) { s = 2 * Math.sqrt(1 + m00 - m11 - m22); return [0.25 * s, (m01 + m10) / s, (m02 + m20) / s, (m21 - m12) / s]; }
+    if (m11 > m22) { s = 2 * Math.sqrt(1 + m11 - m00 - m22); return [(m01 + m10) / s, 0.25 * s, (m12 + m21) / s, (m02 - m20) / s]; }
+    s = 2 * Math.sqrt(1 + m22 - m00 - m11); return [(m02 + m20) / s, (m12 + m21) / s, 0.25 * s, (m10 - m01) / s];
+  }
+  function viewFrom(eye, target, up) { // build a 3Dmol view array for a camera at eye looking at target
+    var back = norm(sub(eye, target)), right = norm(cross(up, back)), up2 = cross(back, right), d = Math.hypot(eye.x - target.x, eye.y - target.y, eye.z - target.z);
+    return [-target.x, -target.y, -target.z, 150 - d].concat(quatFromRows(right, up2, back));
+  }
+  function insideView(orbit) { // orbit: small swing angle (radians) around the up axis for a living camera
+    var dir = CAM_DIR;
+    if (orbit) { var c = Math.cos(orbit), sn = Math.sin(orbit), w = cross(U, dir), pa = dot(dir, U); dir = norm(addv(addv({ x: U.x * pa, y: U.y * pa, z: U.z * pa }, addv(dir, U, -pa), c), w, sn)); }
+    return viewFrom(addv(T, dir, CAM_D), T, U);
+  }
+  V.inside = insideView(0);
+  var LENS_DEF = { fov: 20, sn: -50, sf: 50 }, LENS_IN = { fov: 62, sn: -CAM_D + 1.2, sf: 70 }, lens = { fov: 20, sn: -50, sf: 50 };
+  function setLens(l) { lens = { fov: l.fov, sn: l.sn, sf: l.sf }; viewer.setSlab(l.sn, l.sf); viewer.setCameraParameters({ fov: l.fov }); }
+  // ---------- directed camera: decompose / rebuild views, orbit about an axis ----------
+  function rowsOfQuat(q) { var x = q[0], y = q[1], z = q[2], w = q[3];
+    return [{ x: 1 - 2 * (y * y + z * z), y: 2 * (x * y - z * w), z: 2 * (x * z + y * w) }, { x: 2 * (x * y + z * w), y: 1 - 2 * (x * x + z * z), z: 2 * (y * z - x * w) }, { x: 2 * (x * z - y * w), y: 2 * (y * z + x * w), z: 1 - 2 * (x * x + y * y) }]; }
+  function decomp(v) { var r = rowsOfQuat(v.slice(4, 8)); return { t: { x: -v[0], y: -v[1], z: -v[2] }, d: 150 - v[3], back: r[2], up: r[1] }; }
+  function compose(p) { return viewFrom(addv(p.t, p.back, p.d), p.t, p.up); }
+  function orbitV(v, axis, ang, dk, tgt) { var p = decomp(v); if (tgt) p.t = tgt; if (ang) { p.back = norm(rodrigues(p.back, axis, ang)); p.up = norm(rodrigues(p.up, axis, ang)); } p.d *= (dk || 1); return compose(p); }
+  function easeCam(t) { return t * t * t * (t * (6 * t - 15) + 10); } // smootherstep: very gentle starts and stops
+  var AX = decomp(V.base).up;                 // the protein's long axis as seen in the opening shot
+  var HS = decomp(V.contact).t;               // centre of the NBD1/ICL4 handshake
+  var LENS_CONTACT = { fov: 20, sn: -13, sf: 55 }, LENS_NEAR = { fov: 20, sn: -9, sf: 60 };
+  // whole-gate framing: a little wider than zoomTo and lifted so the caption box never covers the bottom of the gate
+  var B0 = decomp(V.base);
+  function gateV(ang, dk) { return orbitV(V.base, AX, ang, dk, addv(B0.t, AX, -0.03 * B0.d * dk)); }
+  var START1 = function (e) { return gateV(lerp(-0.55, 0, e), lerp(1.5, 1.15, e)); };
+  // Hinge for the hand-animated fold: the yellow piece swings about its own centre, toward the camera when "open"
+  var HINGE_P = centroidAtoms(nAt), HINGE_K = norm(cross(sub(pocket, HINGE_P), CAM_DIR));
+  var fold = { theta: 0, shift: 0 }, TH_OPEN = 0.95, SH_OPEN = 5;
+  function rodrigues(v, k, th) { var c = Math.cos(th), s2 = Math.sin(th), kv = cross(k, v), kd = dot(k, v); return { x: v.x * c + kv.x * s2 + k.x * kd * (1 - c), y: v.y * c + kv.y * s2 + k.y * kd * (1 - c), z: v.z * c + kv.z * s2 + k.z * kd * (1 - c) }; }
+  function foldPoint(p) { var v = rodrigues(sub(p, HINGE_P), HINGE_K, fold.theta); return addv(addv(HINGE_P, v), U, -fold.shift); }
+  function applyFold(m) {
+    m.selectedAtoms({}).forEach(function (a) { var q = foldPoint({ x: a._ox, y: a._oy, z: a._oz }); a.x = q.x; a.y = q.y; a.z = q.z; });
+    regen(m); viewer.render();
+  }
+  function closeStyle() {
+    var cf = { colorfunc: colorFor, thickness: 0.5 };
+    model.setStyle(visSel, { cartoon: cf });
+    model.setStyle({ resi: NBD1[0] + '-' + NBD1[1] }, {});
+    model.setStyle({ resi: iIfList }, { cartoon: cf, sphere: { color: C.icl4, scale: 0.78 } });
+    var m = look.close === 'A' ? nbdA : nbdB, other = look.close === 'A' ? nbdB : nbdA;
+    other.setStyle({}, {});
+    m.setStyle(visSel, { cartoon: { color: C.nbd1, thickness: 0.5 } });
+    m.setStyle({ resi: nIfList }, { cartoon: { color: C.nbd1, thickness: 0.5 }, sphere: { color: C.nbd1, scale: 0.78 } });
+    if (look.close === 'A') m.setStyle({ resi: 508 }, { cartoon: { color: C.nbd1, thickness: 0.5 }, sphere: { color: C.hot, scale: 0.95 } });
+    regen(model); regen(m);
+  }
+
+  // ---------- animation engine ----------
+  var token = 0, tickers = [];
+  function tween(ms, fn, done, delay) {
+    var my = token, start = null;
+    tickers.push(function (now) {
+      if (my !== token) return true;
+      if (start === null) start = now + (delay || 0);
+      if (now < start) return false;
+      var t = Math.min(1, (now - start) / ms);
+      fn(t);
+      if (t >= 1) { if (done) done(); return true; }
+      return false;
+    });
+  }
+  function forever(fn) { var my = token; tickers.push(function (now) { if (my !== token) return true; fn(now); return false; }); }
+  function loop(now) {
+    var run = tickers; tickers = [];
+    var keep = run.filter(function (f) { return !f(now); });
+    tickers = keep.concat(tickers); // keep tickers added by callbacks during this frame
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+  function moveCamera(target, ms, toLens) {
+    var from = null, l0 = null, l1 = toLens || LENS_DEF;
+    tween(ms || 1400, function (t) {
+      if (!from) { from = viewer.getView().slice(); l0 = { fov: lens.fov, sn: lens.sn, sf: lens.sf }; }
+      var e = easeCam(t);
+      setLens({ fov: lerp(l0.fov, l1.fov, e), sn: lerp(l0.sn, l1.sn, e), sf: lerp(l0.sf, l1.sf, e) });
+      viewer.setView(viewLerp(from, target, e)); viewer.render();
+    });
+  }
+
+  // glide: follow a moving camera path; blends in from wherever the camera is, so steps never jump
+  function glide(ms, path, toLens, done, delay, blend) {
+    var from = null, l0 = null, l1 = toLens || LENS_DEF; blend = blend || 0.4;
+    tween(ms, function (t) {
+      if (!from) { from = viewer.getView().slice(); l0 = { fov: lens.fov, sn: lens.sn, sf: lens.sf }; }
+      var e = easeCam(t), w = easeCam(Math.min(1, t / blend));
+      setLens({ fov: lerp(l0.fov, l1.fov, w), sn: lerp(l0.sn, l1.sn, w), sf: lerp(l0.sf, l1.sf, w) });
+      viewer.setView(viewLerp(from, path(e), w)); viewer.render();
+    }, done, delay);
+  }
+
+  // ---------- insets (simple cell-wall drawings) ----------
+  function wallSVG(nGates, flow, mucus) {
+    var s = '<svg width="100%" viewBox="0 0 130 112" style="max-width:200px">';
+    var mh = mucus === 'thick' ? 34 : 12;
+    s += '<rect x="0" y="0" width="130" height="' + mh + '" fill="' + (mucus === 'thick' ? '#65a30d' : '#a3e635') + '" opacity="' + (mucus === 'thick' ? 0.75 : 0.35) + '"/>';
+    s += '<text x="4" y="' + (mh / 2 + 4) + '" font-size="9" fill="#0f172a">mucus</text>';
+    s += '<rect x="0" y="50" width="130" height="12" fill="#475569"/>';
+    var xs = []; for (var i = 0; i < nGates; i++) xs.push(Math.round(130 * (i + 1) / (nGates + 1)));
+    xs.forEach(function (x) { s += '<rect x="' + (x - 5) + '" y="46" width="10" height="20" rx="3" fill="#ff5733"/>'; });
+    var k = 0;
+    xs.forEach(function (x) {
+      for (var j = 0; j < flow; j++) {
+        var dur = 2.2, beg = (j * dur / flow).toFixed(2);
+        s += '<circle cx="' + x + '" cy="100" r="2.6" fill="#e2e8f0"><animate attributeName="cy" values="104;56;' + (mh + 4) + '" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="1;1;0" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/></circle>';
+        k++;
+      }
+    });
+    // stuck salt inside when few gates
+    if (nGates < 3) for (var m = 0; m < 9; m++) s += '<circle cx="' + (12 + m * 13) + '" cy="' + (86 + (m % 3) * 8) + '" r="2.6" fill="#e2e8f0" opacity=".8"/>';
+    s += '<text x="4" y="110" font-size="8.5" fill="#94a3b8">inside the cell</text>';
+    s += '</svg>';
+    return s;
+  }
+  var INSETS = {
+    0: { t: 'Zoomed way out: gates in the cell wall', cells: [['Healthy cell', wallSVG(4, 2, 'thin'), 'salt (white dots) flows out, mucus stays thin']] },
+    7: { t: 'Fewer gates reach the wall', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'many gates'], ['F508del', wallSVG(1, 1, 'thick'), 'few gates, thick mucus']] },
+    8: { t: 'With corrector medicines', cells: [['F508del', wallSVG(1, 1, 'thick'), 'few gates'], ['+ medicines', wallSVG(3, 2, 'thin'), 'more gates, salt flows']] }
+  };
+  function showInset(i) {
+    var d = INSETS[i], box = el('inset');
+    if (!d) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    var h = '<div class="t">' + d.t + '</div><div class="row">';
+    d.cells.forEach(function (c) { h += '<div class="cell"><b>' + c[0] + '</b>' + c[1] + '<div>' + c[2] + '</div></div>'; });
+    box.innerHTML = h + '</div>'; box.style.display = 'block';
+  }
+  function legend(keys) { el('legend').style.display = keys.length ? 'flex' : 'none'; document.querySelectorAll('#legend span').forEach(function (s) { s.classList.toggle('on', keys.indexOf(s.dataset.k) >= 0); }); }
+
+  // ---------- steps ----------
+  var cur = -1, playing = false, stepStart = 0, exploring = false;
+  function setLook(o) { for (var k in o) look[k] = o[k]; restyle(); }
+  function counter(show, n, note) { el('counter').style.display = show ? 'block' : 'none'; if (n != null) el('ctrNum').textContent = n; el('ctrNote').textContent = note || ''; }
+  function syncSlider(r) { el('resSlider').value = Math.round(r); el('exploreLabel').innerHTML = 'Building block <b>' + Math.round(r) + '</b>' + (Math.round(r) === 508 ? ' (missing in F508del)' : ''); }
+
+  var SCENES = [
+    function () { // 1 gate
+      off.loosen = 0; off.breakup = 0; setLook({ scheme: 'plain', sick: 0, opacity: 1, ghost: false, split: false, sticks508: false });
+      mk.visible = false; drawMarker(); legend([]); showInset(0);
+      // establishing shot: one slow eased arc + push-in onto the whole gate, then hold
+      glide(7000, START1, LENS_DEF, null, 0, 0.25);
+    },
+    function () { // 2 fold
+      off.loosen = 0; off.breakup = 0; look.ghost = false; look.split = false; look.sticks508 = false; look.opacity = 1; look.sick = 0;
+      look.scheme = 'nbd1'; restyle();
+      mk.visible = false; drawMarker(); legend(['nbd1', 'rest']); showInset(null);
+      // push in on the yellow piece with a slight arc for depth, then hold
+      glide(5000, function (e) { return orbitV(V.nbd1, AX, lerp(-0.3, 0, e)); }, LENS_DEF, null, 0, 0.6);
+      label('The folding piece', cNBD1, { size: 16, bg: '#854d0e', off: { x: 0, y: -10 } });
+      label('NBD1', cNBD1, { size: 11, off: { x: 0, y: 14 } });
+    },
+    function () { // 3 missing link
+      off.loosen = 0; off.breakup = 0; setLook({ scheme: 'nbd1', sick: 0, opacity: 1, ghost: false, split: false, sticks508: false });
+      legend(['hot', 'nbd1', 'rest']); showInset(null);
+      // the camera follows the marker down the chain and settles close on 508
+      var n1 = decomp(V.nbd1);
+      glide(5600, function (e) { var p = { t: { x: lerp(n1.t.x, c508.x, e), y: lerp(n1.t.y, c508.y, e), z: lerp(n1.t.z, c508.z, e) }, d: n1.d * lerp(1, 0.62, e), back: n1.back, up: n1.up }; return compose(p); }, LENS_NEAR, null, 0, 0.3);
+      mk.visible = true; mk.pos = 440; mk.r = 2.4; mk.opacity = 1; mk.halo = 0; drawMarker();
+      counter(true, 440, '');
+      tween(4200, function (t) {
+        mk.pos = lerp(440, 508, ease(t)); drawMarker();
+        el('ctrNum').textContent = Math.round(mk.pos); syncSlider(mk.pos);
+      }, function () {
+        el('ctrNote').textContent = '\u2190 missing in F508del';
+        label('Number 508: missing in cystic fibrosis', caPos(508), { size: 15, bg: C.hot, off: { x: 0, y: -30 } });
+        forever(function (now) { var s = 0.5 + 0.5 * Math.sin(now / 260); mk.r = 2.4 + 1.0 * s; mk.halo = s; drawMarker(); });
+      }, 600);
+    },
+    function () { // 4 handshake
+      off.loosen = 0; off.breakup = 0; setLook({ scheme: 'contact', sick: 0, opacity: 1, ghost: false, split: false, sticks508: true });
+      legend(['hot', 'nbd1', 'icl4', 'rest']); showInset(null);
+      mk.visible = true; mk.pos = 508; mk.r = 1.6; mk.opacity = 0.9; mk.halo = 0; drawMarker(); syncSlider(508);
+      // push in, hold to read, then one slow orbit around the handshake (both sides), return and hold.
+      // The near clipping plane cuts away chains in front of the contact so nothing hides it.
+      glide(3200, function () { return V.contact; }, LENS_CONTACT, null, 0, 1);
+      // Anchors chosen so the three labels sit in separate screen regions and never cover the orange 508 sticks
+      var cI = caPos(1045), cN = caPos(470), p508 = caPos(508);
+      function fullLabels() {
+      label('Yellow piece \u25B6', cN, { size: 15, bg: '#854d0e', align: 'centerRight', off: { x: -14, y: 12 } });
+      label('NBD1', cN, { size: 11, align: 'centerRight', off: { x: -14, y: -13 } });
+      label('\u25C0 Blue loop from the other half', cI, { size: 15, bg: '#075985', align: 'centerLeft', off: { x: 18, y: 12 } });
+      label('ICL4', cI, { size: 11, align: 'centerLeft', off: { x: 18, y: -13 } });
+      label('\u25C0 508: the handshake point', p508, { size: 14, bg: C.hot, align: 'centerLeft', off: { x: 26, y: 10 } });
+      label('Phe508', p508, { size: 11, align: 'centerLeft', off: { x: 26, y: -14 } });
+      }
+      fullLabels();
+      var ORB = 1.15; // ~66 degrees each way
+      tween(9500, function (t) {
+        var e = easeCam(t); viewer.setView(orbitV(V.contact, U, ORB * Math.sin(2 * Math.PI * e))); viewer.render();
+      }, function () { clearLabels(); fullLabels(); el('small').textContent = STEPS[3].small; viewer.render(); }, 6800);
+      tween(1, function () {}, function () {
+        clearLabels();
+        label('ICL4 (blue loop)', iIfC, { size: 14, bg: '#075985', align: 'center', off: { x: 0, y: 34 } });
+        label('NBD1 (yellow piece)', nIfC, { size: 14, bg: '#854d0e', align: 'center', off: { x: 0, y: -34 } });
+        label('508', pocket, { size: 14, bg: C.hot, align: 'centerLeft', off: { x: 22, y: 0 } });
+        el('small').textContent = 'Circling the contact to see it from both sides. Chains in front are cut away so the handshake stays in view.';
+      }, 6700);
+      forever(function (now) { mk.halo = 0.5 + 0.5 * Math.sin(now / 300); drawMarker(); });
+    },
+    function () { // 5 inside the factory: healthy fold
+      off.loosen = 0; off.breakup = 0;
+      fold.theta = TH_OPEN; fold.shift = SH_OPEN; applyFold(nbdA);
+      setLook({ scheme: 'contact', sick: 0, opacity: 1, ghost: false, split: false, sticks508: false, close: 'A' });
+      mk.visible = false; drawMarker(); legend(['hot', 'nbd1', 'icl4']); showInset(null); el('scaleTag').style.display = 'block'; el('explore').style.visibility = 'hidden';
+      moveCamera(V.inside, 2800, LENS_IN);
+      var yl = null;
+      function yLabel(txt, bg) { if (yl) { viewer.removeLabel(yl); labels.splice(labels.indexOf(yl), 1); } label(txt, pocket, { size: 15, bg: bg || '#854d0e', align: 'center', off: { x: 0, y: 95 } }); yl = labels[labels.length - 1]; }
+      tween(1, function () {}, function () {
+        label('Blue loop overhead (ICL4)', iIfC, { size: 15, bg: '#075985', align: 'center', off: { x: 0, y: 40 } });
+        yLabel('Yellow piece folding in (NBD1)');
+      }, 2900);
+      tween(5200, function (t) {
+        fold.theta = TH_OPEN * (1 - easeOutBack(t)); fold.shift = SH_OPEN * (1 - ease(t)); applyFold(nbdA);
+        if (t > 0.97 && yl) { viewer.removeLabel(yl); labels.splice(labels.indexOf(yl), 1); yl = null; }
+      }, function () {
+        fold.theta = 0; fold.shift = 0; applyFold(nbdA);
+        label('Click! 508 locks into its pocket', pocket, { size: 17, bg: C.hot, align: 'center', off: { x: 0, y: -60 } });
+        tween(900, function (t) { // the "click": an orange shock-ring and a small camera jolt
+          clearFx();
+          fx.push(viewer.addSphere({ center: pocket, radius: 1.5 + 7 * ease(t), color: C.hot, opacity: 0.55 * (1 - t) }));
+          fx.push(viewer.addSphere({ center: pocket, radius: 2.4, color: '#ffd2c2', opacity: 0.8 * (1 - t) }));
+          var j = 0.5 * (1 - t) * Math.sin(t * 40), v = insideView(0); v[0] += j * U.x; v[1] += j * U.y; v[2] += j * U.z;
+          viewer.setView(v); viewer.render();
+        }, function () {
+          clearFx(); viewer.render();
+          var t0 = performance.now();
+          forever(function (now) { viewer.setView(insideView(0.12 * Math.sin((now - t0) / 1600))); viewer.render(); });
+        });
+      }, 3200);
+    },
+    function () { // 6 inside the factory: F508del
+      off.loosen = 0; off.breakup = 0;
+      fold.theta = TH_OPEN; fold.shift = SH_OPEN; applyFold(nbdB);
+      setLook({ scheme: 'contact', sick: 0, opacity: 1, ghost: false, split: false, sticks508: false, close: 'B' });
+      mk.visible = false; drawMarker(); legend(['pocket', 'nbd1', 'icl4']); showInset(null); el('scaleTag').style.display = 'block'; el('explore').style.visibility = 'hidden';
+      moveCamera(V.inside, 2000, LENS_IN);
+      forever(function (now) { // glowing outline of the empty pocket
+        clearFx(); var p = 0.5 + 0.5 * Math.sin(now / 280);
+        fx.push(viewer.addSphere({ center: pocket, radius: 2.9 + 0.35 * p, color: '#ff8a65', wireframe: true, opacity: 0.95 }));
+        fx.push(viewer.addSphere({ center: pocket, radius: 2.6, color: '#ff5733', opacity: 0.12 + 0.18 * p }));
+        viewer.render();
+      });
+      label('Empty pocket: 508 is missing', pocket, { size: 15, bg: '#7c2d12', align: 'center', off: { x: 0, y: -55 } });
+      var TH_STUCK = 0.24;
+      tween(4500, function (t) { fold.theta = lerp(TH_OPEN, TH_STUCK, ease(t)); fold.shift = lerp(SH_OPEN, 1.5, ease(t)); applyFold(nbdB); }, function () {
+        label('Can\u2019t lock: nothing to grip', pocket, { size: 15, bg: '#854d0e', align: 'center', off: { x: 0, y: 95 } }); var cl = labels[labels.length - 1];
+        tween(3200, function (t) { fold.theta = TH_STUCK + 0.13 * Math.sin(t * Math.PI * 6) * (1 - 0.4 * t); applyFold(nbdB); }, function () {
+          tween(3600, function (t) { var e = ease(t); fold.theta = lerp(TH_STUCK, TH_OPEN * 0.85, e); fold.shift = lerp(1.5, 7, e); applyFold(nbdB); }, function () {
+            viewer.removeLabel(cl); labels.splice(labels.indexOf(cl), 1);
+            label('It drifts apart', pocket, { size: 15, bg: '#7f1d1d', align: 'center', off: { x: 0, y: 95 } });
+          });
+        });
+      }, 800);
+    },
+    function () { // 7 loosens
+      off.breakup = 0; off.loosen = 0;
+      setLook({ scheme: 'contact', sick: 0, opacity: 1, ghost: true, split: true, sticks508: false });
+      legend(['hot', 'nbd1', 'icl4', 'ghost']); showInset(null);
+      mk.visible = true; mk.pos = 508; mk.r = 1.8; mk.opacity = 1; mk.halo = 0; drawMarker(); syncSlider(508);
+      glide(9000, function (e) { return orbitV(V.loose, U, 0, lerp(1.0, 0.85, e)); }, LENS_CONTACT, null, 0, 0.35);
+      tween(1500, function (t) { mk.opacity = 1 - ease(t); drawMarker(); }, function () {
+        mk.visible = false; drawMarker();
+        tween(2600, function (t) { off.loosen = ease(t); applyLoosen(); viewer.render(); }, function () {
+          var g = centroid([1062, 1072]);
+          label('Normal position (faint)', g, { size: 13, bg: '#1e293b', off: { x: -110, y: 0 } });
+          label('Loosened grip', { x: g.x + loosenDir.x * 8, y: g.y + loosenDir.y * 8, z: g.z + loosenDir.z * 8 }, { size: 14, bg: '#075985', off: { x: 90, y: -10 } });
+          label('No 508 here anymore', c508, { size: 13, bg: '#7c2d12', off: { x: 0, y: 30 } });
+        });
+      }, 400);
+    },
+    function () { // 8 thrown away
+      off.loosen = 0; off.breakup = 0;
+      setLook({ scheme: 'all', sick: 0, opacity: 1, ghost: false, split: false, sticks508: false });
+      mk.visible = false; drawMarker(); legend(['nbd1', 'icl4', 'rest']); showInset(7);
+      // slow pull-back with a slight arc: the whole gate comes apart
+      glide(6000, function (e) { return gateV(0.35 * e, lerp(1.15, 1.4, e)); }, LENS_DEF, null, 0, 0.5);
+      tween(3200, function (t) { var e = ease(t); off.breakup = e; look.sick = 0.85 * e; look.opacity = 1 - 0.3 * e; restyle(); }, function () {
+        label('Broken down by the cell', cAll, { size: 15, bg: '#7f1d1d', off: { x: 0, y: -20 } });
+      }, 800);
+    },
+    function () { // 9 medicines
+      off.loosen = 0; off.breakup = 1;
+      setLook({ scheme: 'all', sick: 0.85, opacity: 0.7, ghost: false, split: false, sticks508: false });
+      mk.visible = false; drawMarker(); legend(['nbd1', 'icl4', 'rest']); showInset(8);
+      // as the gate is repaired, the camera eases back in and settles on the working gate
+      glide(8000, function (e) { return gateV(lerp(0.35, 0, e), lerp(1.4, 1.15, e)); }, LENS_DEF, null, 0, 0.3);
+      tween(3000, function (t) { var e = ease(t); off.breakup = 1 - e; look.sick = 0.85 * (1 - e); look.opacity = 0.7 + 0.3 * e; restyle(); }, function () {
+        label('Folded and working', cAll, { size: 15, bg: '#166534', off: { x: 0, y: -20 } });
+      }, 600);
+    }
+  ];
+
+  function go(i, fromPlay) {
+    i = Math.max(0, Math.min(STEPS.length - 1, i));
+    token++; tickers = [];
+    clearLabels(); counter(false); exploring = false;
+    clearFx(); el('scaleTag').style.display = 'none'; el('explore').style.visibility = ''; look.close = null; fold.theta = 0; fold.shift = 0;
+    viewer.spin(false);
+    cur = i; stepStart = performance.now();
+    var s = STEPS[i];
+    el('caption').style.opacity = 0; el('small').style.opacity = 0;
+    setTimeout(function () { el('caption').innerHTML = s.cap; el('small').textContent = s.small; el('caption').style.opacity = 1; el('small').style.opacity = 1; }, 180);
+    el('stepTot').textContent = STEPS.length; el('stepNum').textContent = i + 1; el('stepName').textContent = s.name;
+    document.querySelectorAll('#dots i').forEach(function (d, k) { d.classList.toggle('on', k === i); d.classList.toggle('done', k < i); });
+    el('btnBack').disabled = i === 0; el('btnNext').disabled = i === STEPS.length - 1;
+    if (!fromPlay) setPlaying(false);
+    SCENES[i]();
+    // progress bar + autoplay ticker
+    forever(function (now) {
+      var t = Math.min(1, (now - stepStart) / (STEPS[cur].ms || STEP_MS));
+      el('prog').firstChild.style.width = (playing ? t * 100 : 0) + '%';
+      if (playing && t >= 1) { if (cur < STEPS.length - 1) go(cur + 1, true); else setPlaying(false); }
+    });
+    window.storyDemo.step = i;
+  }
+  function setPlaying(on) {
+    playing = on; el('btnPlay').innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Play story';
+    if (on) stepStart = performance.now();
+  }
+
+  // UI
+  STEPS.forEach(function (s, k) { var d = document.createElement('i'); d.title = (k + 1) + '. ' + s.name; d.addEventListener('click', function () { go(k); }); el('dots').appendChild(d); });
+  el('btnNext').addEventListener('click', function () { go(cur + 1); });
+  el('btnBack').addEventListener('click', function () { go(cur - 1); });
+  el('btnPlay').addEventListener('click', function () {
+    if (playing) { setPlaying(false); return; }
+    setPlaying(true);
+    if (cur === STEPS.length - 1) go(0, true); else stepStart = performance.now();
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') go(cur + 1); if (e.key === 'ArrowLeft') go(cur - 1); if (e.key === ' ') { e.preventDefault(); el('btnPlay').click(); } });
+
+  // Explore slider: marker glides (interpolated along the chain) toward the chosen building block
+  var slideTarget = 508, slideTicker = null;
+  el('resSlider').addEventListener('input', function () {
+    setPlaying(false);
+    slideTarget = parseInt(this.value, 10);
+    var lowConf = ca[slideTarget] && ca[slideTarget].b < 50;
+    el('exploreLabel').innerHTML = 'Building block <b>' + slideTarget + '</b>' + (slideTarget === 508 ? ' (missing in F508del)' : lowConf ? ' (floppy stretch, not drawn)' : '');
+    if (!exploring) {
+      exploring = true; mk.visible = true; mk.opacity = 1; mk.halo = 0; mk.r = 2.4;
+      if (!(mk.pos >= 1)) mk.pos = slideTarget;
+      var last = performance.now();
+      forever(function (now) {
+        var dt = Math.min(0.1, (now - last) / 1000); last = now;
+        var d = slideTarget - mk.pos;
+        if (Math.abs(d) < 0.01) { if (mk.pos !== slideTarget) { mk.pos = slideTarget; drawMarker(); } return; }
+        mk.pos += d * Math.min(1, dt * 6); drawMarker();
+      });
+    }
+  });
+
+  window.addEventListener('resize', function () { viewer.resize(); viewer.render(); });
+  window.storyDemo = { go: go, dbg: function () { var b = V.base, c = compose(decomp(b)); return { roundTrip: b.map(function (v, i) { return +(v - c[i]).toFixed(3); }), camScore: best.score, camDir: CAM_DIR, nIf: nIfList.length, iIf: iIfList.length }; }, play: function () { setPlaying(true); }, viewer: viewer, chainPos: chainPos, step: 0 };
+  el('loading').style.display = 'none';
+  viewer.setView(START1(0));
+  go(0);
+  window.storyReady = true;
+})();
+</script>
+</body>
+</html>
