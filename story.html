@@ -55,14 +55,22 @@
   footer { border-top:1px solid var(--line); padding:9px 20px; font-size:11.5px; color:var(--muted); display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap; }
   footer a { color:#93c5fd; text-decoration:none; }
   footer .cites span { margin-right:14px; }
+  #camHUD { position:absolute; right:16px; bottom:200px; z-index:9; background:rgba(15,23,42,.94); border:1px solid #38bdf8; border-radius:10px; padding:10px 14px; font-size:12px; color:var(--text); box-shadow:0 6px 20px rgba(0,0,0,.5); width:280px; display:none; }
+  #camHUD .title { font-weight:700; color:#38bdf8; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; }
+  #camHUD .row { display:flex; justify-content:space-between; margin:3px 0; font-family:ui-monospace, monospace; font-size:11px; }
+  #camHUD .row span { color:var(--muted); }
+  #camHUD button.copyBtn { width:100%; margin-top:8px; background:#0284c7; color:white; border:none; border-radius:6px; padding:7px 10px; font-size:12px; font-weight:600; cursor:pointer; }
+  #camHUD button.copyBtn:hover { background:#0369a1; }
+  #toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:#10b981; color:white; padding:8px 16px; border-radius:20px; font-size:13px; font-weight:600; z-index:99; opacity:0; pointer-events:none; transition:opacity .3s; box-shadow:0 4px 12px rgba(0,0,0,.3); }
   @media (max-width:820px){ #caption{font-size:20px;} #inset{width:220px;} #explore{display:none;} #legend{bottom:auto; top:60px; right:auto; left:16px;} }
   @media (max-width:520px){
     #capWrap { padding:14px 16px 12px; }
-    #controls { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
-    #controls button { padding:9px 5px; font-size:13px; white-space:nowrap; min-width:0; }
+    #controls { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; }
+    #controls button { padding:9px 4px; font-size:12px; white-space:nowrap; min-width:0; }
     #btnBack { grid-column:1; grid-row:1; }
     #btnPlay { grid-column:2; grid-row:1; }
-    #btnNext { grid-column:3; grid-row:1; }
+    #btnCam { grid-column:3; grid-row:1; }
+    #btnNext { grid-column:4; grid-row:1; }
     #dots { grid-column:1 / -1; grid-row:2; padding:4px 0; }
     #dots i { flex-shrink:0; }
   }
@@ -81,6 +89,17 @@
   <div id="illusBadge">&#9888; ILLUSTRATION <span>(Artistic schematic &middot; not an MD simulation)</span></div>
   <div id="counter">Building block <b id="ctrNum">440</b> <span id="ctrNote"></span></div>
   <div id="inset"></div>
+  <div id="camHUD">
+    <div class="title"><span>📷 Camera Inspector</span><button id="btnCloseCam" style="background:transparent;border:none;color:#94a3b8;cursor:pointer;font-size:14px;">✕</button></div>
+    <div class="row"><span>Step:</span><b id="camStep">1. The gate</b></div>
+    <div class="row"><span>Target [X,Y,Z]:</span><b id="camCenter">[0, 0, 0]</b></div>
+    <div class="row"><span>Distance:</span><b id="camDist">0</b></div>
+    <div class="row"><span>Lens FOV:</span><b id="camFov">20</b></div>
+    <div style="font-size:11px; color:#94a3b8; margin:6px 0 4px;">Orbit, zoom, or pan the 3D model, then copy:</div>
+    <button class="copyBtn" id="btnCopyCam">📋 Copy Camera Vector</button>
+    <button id="btnResetCam" style="width:100%;margin-top:5px;background:#1e293b;color:#cbd5e1;border:1px solid #334155;border-radius:6px;padding:5px;font-size:11px;cursor:pointer;">⏪ Reset Step Camera</button>
+  </div>
+  <div id="toast">Camera vector copied to clipboard!</div>
   <div id="scaleTag">Shrunk to atom size: each ball is a single atom</div>
   <div id="legend">
     <span data-k="hot"><i class="sw" style="background:#ff5733"></i>Building block 508 (Phe508)</span>
@@ -101,6 +120,7 @@
     <div id="controls">
       <button id="btnBack">&larr; Back</button>
       <button id="btnPlay" class="primary">&#9654; Play story</button>
+      <button id="btnCam" title="Open 3D Camera Inspector (or press C)">📷 Cam</button>
       <div id="dots"></div>
       <button id="btnNext" class="primary">Next &rarr;</button>
     </div>
@@ -447,16 +467,16 @@
 
   // ---------- insets (epithelial membrane & mucus mechanics) ----------
   function wallSVG(nGates, flow, mucus) {
-    var s = '<svg width="100%" viewBox="0 0 130 116" style="max-width:200px">';
+    var s = '<svg width="100%" viewBox="0 0 130 124" style="max-width:200px">';
     var isThick = mucus === 'thick';
     var mh = isThick ? 38 : 14;
     // Mucus gel layer
-    s += '<rect x="0" y="0" width="130" height="' + mh + '" fill="' + (isThick ? '#4d531a' : '#84cc16') + '" opacity="' + (isThick ? '0.85' : '0.4') + '"/>';
-    s += '<text x="4" y="' + (mh / 2 + 3.5) + '" font-size="8.5" font-weight="600" fill="' + (isThick ? '#fef08a' : '#0f172a') + '">' + (isThick ? 'dehydrated mucus' : 'hydrated mucus') + '</text>';
+    s += '<rect x="0" y="0" width="130" height="' + mh + '" fill="' + (isThick ? '#365314' : '#4d7c0f') + '" opacity="' + (isThick ? '0.95' : '0.55') + '"/>';
+    s += '<text x="65" y="' + (mh / 2 + 3.5) + '" text-anchor="middle" font-size="8" font-weight="700" fill="#ffffff">' + (isThick ? 'THICK MUCUS (dehydrated)' : 'HYDRATED MUCUS (clear)') + '</text>';
     // Airway surface liquid (ASL)
     if (!isThick) {
-      s += '<rect x="0" y="' + mh + '" width="130" height="34" fill="#38bdf8" opacity="0.15"/>';
-      s += '<text x="4" y="' + (mh + 14) + '" font-size="7.5" fill="#38bdf8">water / ASL layer</text>';
+      s += '<rect x="0" y="' + mh + '" width="130" height="34" fill="#0369a1" opacity="0.3"/>';
+      s += '<text x="65" y="' + (mh + 16) + '" text-anchor="middle" font-size="7.5" font-weight="600" fill="#bae6fd">Airway Surface Liquid (H\u2082O)</text>';
     }
     // Cell membrane
     s += '<rect x="0" y="50" width="130" height="12" fill="#334155"/>';
@@ -467,30 +487,35 @@
       xs.forEach(function (x, idx) {
         for (var j = 0; j < flow; j++) {
           var dur = 2.0, beg = (j * dur / flow + idx * 0.25).toFixed(2);
-          // Chloride (cyan)
-          s += '<circle cx="' + (x - 2) + '" cy="100" r="2.2" fill="#38bdf8"><animate attributeName="cy" values="104;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="1;1;0" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/></circle>';
-          // Bicarbonate (amber)
-          s += '<circle cx="' + (x + 2) + '" cy="100" r="2.2" fill="#fbbf24"><animate attributeName="cy" values="104;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + (beg + 0.4) + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="1;1;0" dur="' + dur + 's" begin="' + (beg + 0.4) + 's" repeatCount="indefinite"/></circle>';
-          // Osmotic Water (light blue)
-          s += '<circle cx="' + x + '" cy="100" r="1.6" fill="#e0f2fe"><animate attributeName="cy" values="104;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + (beg + 0.2) + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="0.9;0.9;0" dur="' + dur + 's" begin="' + (beg + 0.2) + 's" repeatCount="indefinite"/></circle>';
+          // Chloride (cyan) exiting CFTR pore
+          s += '<circle cx="' + (x - 2) + '" cy="100" r="2.2" fill="#38bdf8" opacity="0"><animate attributeName="cy" values="100;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.15;0.85;1" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/></circle>';
+          // Bicarbonate (amber) exiting CFTR pore
+          s += '<circle cx="' + (x + 2) + '" cy="100" r="2.2" fill="#fbbf24" opacity="0"><animate attributeName="cy" values="100;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + (beg + 0.35) + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.95;0.95;0" keyTimes="0;0.15;0.85;1" dur="' + dur + 's" begin="' + (beg + 0.35) + 's" repeatCount="indefinite"/></circle>';
         }
       });
+      // Water molecules drawn across the adjacent membrane by osmosis
+      for (var w = 0; w < 4; w++) {
+        var wx = 14 + w * 32, wbeg = (w * 0.45).toFixed(2);
+        s += '<circle cx="' + wx + '" cy="80" r="1.6" fill="#e0f2fe" opacity="0"><animate attributeName="cy" values="80;52;' + (mh + 2) + '" dur="2.4s" begin="' + wbeg + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="0;0.9;0.9;0" keyTimes="0;0.2;0.8;1" dur="2.4s" begin="' + wbeg + 's" repeatCount="indefinite"/></circle>';
+      }
     }
     // Trapped anions inside cell when channels absent
     if (nGates < 2) {
-      for (var m = 0; m < 5; m++) s += '<circle cx="' + (16 + m * 22) + '" cy="82" r="2.2" fill="#38bdf8" opacity=".7"/>';
-      for (var n = 0; n < 4; n++) s += '<circle cx="' + (27 + n * 22) + '" cy="92" r="2.2" fill="#fbbf24" opacity=".7"/>';
-      s += '<text x="14" y="106" font-size="7.5" fill="#f87171">ions &amp; water trapped inside</text>';
+      for (var m = 0; m < 5; m++) s += '<circle cx="' + (16 + m * 22) + '" cy="78" r="2.2" fill="#38bdf8" opacity=".7"/>';
+      for (var n = 0; n < 4; n++) s += '<circle cx="' + (27 + n * 22) + '" cy="88" r="2.2" fill="#fbbf24" opacity=".7"/>';
+      s += '<text x="65" y="104" text-anchor="middle" font-size="7.5" fill="#f87171">Ions &amp; water trapped inside cell</text>';
     } else {
-      s += '<text x="4" y="110" font-size="8" fill="#94a3b8">inside the cell (Cl\u207B + HCO\u2083\u207B)</text>';
+      s += '<text x="65" y="102" text-anchor="middle" font-size="7.5" fill="#94a3b8">Inside epithelial cell</text>';
     }
+    // Particle Legend bar at bottom
+    s += '<g transform="translate(6,112)"><circle cx="6" cy="4" r="2.5" fill="#38bdf8"/><text x="12" y="6.5" font-size="7.5" fill="#cbd5e1">Cl\u207B</text><circle cx="34" cy="4" r="2.5" fill="#fbbf24"/><text x="40" y="6.5" font-size="7.5" fill="#cbd5e1">HCO\u2083\u207B</text><circle cx="76" cy="4" r="2" fill="#e0f2fe"/><text x="82" y="6.5" font-size="7.5" fill="#cbd5e1">H\u2082O (water)</text></g>';
     s += '</svg>';
     return s;
   }
   var INSETS = {
-    0: { t: 'Epithelial membrane: CFTR anion export', cells: [['Healthy cell', wallSVG(4, 2, 'thin'), 'Cl\u207B & HCO\u2083\u207B export draws H\u2082O; mucus stays thin & mobile']] },
-    7: { t: 'Airway surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'No ion/water flow: dense, sticky mucus']] },
-    8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Few gates, dehydrated'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking + gating restored']] }
+    0: { t: 'Apical Epithelium: Ion & Water Export', cells: [['Healthy Cell', wallSVG(4, 2, 'thin'), 'Chloride & Bicarbonate draw water; mucus stays hydrated and mobile']] },
+    7: { t: 'Apical Surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'No ion efflux: dry, thick mucus']] },
+    8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Channels degraded'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking & gating restored']] }
   };
   function showInset(i) {
     var d = INSETS[i], box = el('inset');
@@ -688,6 +713,7 @@
       if (playing && t >= 1) { if (cur < STEPS.length - 1) go(cur + 1, true); else setPlaying(false); }
     });
     window.storyDemo.step = i;
+    if (typeof updateCamHUD === 'function') setTimeout(updateCamHUD, 200);
   }
   function setPlaying(on) {
     playing = on; el('btnPlay').innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Play story';
@@ -703,7 +729,65 @@
     setPlaying(true);
     if (cur === STEPS.length - 1) go(0, true); else stepStart = performance.now();
   });
-  document.addEventListener('keydown', function (e) { if (e.key === 'ArrowRight') go(cur + 1); if (e.key === 'ArrowLeft') go(cur - 1); if (e.key === ' ') { e.preventDefault(); el('btnPlay').click(); } });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight') go(cur + 1);
+    if (e.key === 'ArrowLeft') go(cur - 1);
+    if (e.key === ' ') { e.preventDefault(); el('btnPlay').click(); }
+    if (e.key === 'c' || e.key === 'C') {
+      if (!camOpen) toggleCam(true);
+      else copyCameraVector();
+    }
+  });
+
+  // Camera Inspector & Vector Copy Tool
+  var camOpen = false;
+  function updateCamHUD() {
+    if (!camOpen) return;
+    var v = viewer.getView();
+    var p = decomp(v);
+    el('camStep').textContent = (cur + 1) + '. ' + (STEPS[cur] ? STEPS[cur].name : '');
+    el('camCenter').textContent = '[' + p.t.x.toFixed(1) + ', ' + p.t.y.toFixed(1) + ', ' + p.t.z.toFixed(1) + ']';
+    el('camDist').textContent = p.d.toFixed(1);
+    el('camFov').textContent = lens.fov + '\u00B0 (slab: ' + lens.sn.toFixed(0) + ' to ' + lens.sf.toFixed(0) + ')';
+  }
+  function toggleCam(show) {
+    camOpen = show != null ? show : !camOpen;
+    el('camHUD').style.display = camOpen ? 'block' : 'none';
+    if (camOpen) {
+      updateCamHUD();
+      setPlaying(false);
+    }
+  }
+  function showToast(msg) {
+    var t = el('toast');
+    t.textContent = msg || 'Camera vector copied to clipboard!';
+    t.style.opacity = '1';
+    setTimeout(function () { t.style.opacity = '0'; }, 2200);
+  }
+  function copyCameraVector() {
+    var v = viewer.getView().map(function (n) { return +n.toFixed(3); });
+    var p = decomp(v);
+    var data = {
+      step: cur + 1,
+      name: STEPS[cur] ? STEPS[cur].name : '',
+      view: v,
+      lens: { fov: lens.fov, sn: +lens.sn.toFixed(1), sf: +lens.sf.toFixed(1) },
+      target: [ +p.t.x.toFixed(2), +p.t.y.toFixed(2), +p.t.z.toFixed(2) ],
+      dist: +p.d.toFixed(2)
+    };
+    var text = JSON.stringify(data, null, 2);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { showToast(); });
+    } else {
+      prompt('Copy camera vector:', text);
+    }
+  }
+  el('btnCam').addEventListener('click', function () { toggleCam(); });
+  el('btnCloseCam').addEventListener('click', function () { toggleCam(false); });
+  el('btnCopyCam').addEventListener('click', copyCameraVector);
+  el('btnResetCam').addEventListener('click', function () { if (cur >= 0) go(cur); });
+  el('viewer').addEventListener('mouseup', function () { setTimeout(updateCamHUD, 60); });
+  el('viewer').addEventListener('wheel', function () { setTimeout(updateCamHUD, 60); });
 
   // Explore slider: marker glides (interpolated along the chain) toward the chosen building block
   var slideTarget = 508, slideTicker = null;
