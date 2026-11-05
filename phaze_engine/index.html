@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHAZE ENGINE | Universal Biological Multicam (Maverick Prototype v1.0)</title>
+    <!-- Three.js from unpkg/cloudflare CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="data/data_af.js"></script>
+    <style>
+        :root {
+            --bg-void: #05070f;
+            --panel-bg: rgba(10, 14, 26, 0.82);
+            --panel-border: rgba(255, 255, 255, 0.12);
+            --gold: #facc15;
+            --gold-glow: rgba(250, 204, 21, 0.4);
+            --cyan: #06b6d4;
+            --cyan-glow: rgba(6, 182, 212, 0.4);
+            --orange: #f97316;
+            --orange-glow: rgba(249, 115, 22, 0.6);
+            --crimson: #ef4444;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --font-mono: 'SF Mono', 'Fira Code', Menlo, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-void);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* ─── TOP BAR HUD ─── */
+        .top-hud {
+            position: absolute;
+            top: 16px;
+            left: 20px;
+            right: 20px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 0 16px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .brand-cluster {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-badge {
+            font-size: 10px;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            background: linear-gradient(135deg, var(--gold), var(--orange));
+            color: #000;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .brand-title {
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            color: #fff;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+        }
+
+        .brand-subtitle {
+            font-size: 11px;
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+        }
+
+        .layout-selector {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 4px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .layout-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .layout-btn:hover {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .layout-btn.active {
+            background: rgba(250, 204, 21, 0.15);
+            color: var(--gold);
+            border: 1px solid rgba(250, 204, 21, 0.3);
+            box-shadow: 0 0 12px var(--gold-glow);
+        }
+
+        /* ─── GIMP-STYLE PHAZING LAYERS DOCK ─── */
+        .phazing-dock {
+            position: absolute;
+            top: 84px;
+            right: 20px;
+            width: 320px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 16px;
+            z-index: 100;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .dock-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .dock-title {
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--gold);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dock-tag {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .layer-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .layer-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 8px;
+            padding: 10px;
+            transition: all 0.2s ease;
+        }
+
+        .layer-card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .layer-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .layer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .layer-color-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .eye-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: color 0.2s;
+        }
+
+        .eye-toggle.active {
+            color: var(--cyan);
+        }
+
+        .layer-slider-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .phaze-range {
+            flex: 1;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .phaze-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
+
+        .layer-val {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-muted);
+            width: 32px;
+            text-align: right;
+        }
+
+        .dock-presets {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 6px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .preset-btn:hover {
+            color: #fff;
+            border-color: var(--gold);
+            background: rgba(250, 204, 21, 0.1);
+        }
+
+        /* ─── QUANTUM SUPERPOSITION SLIDER (CENTER HUD) ─── */
+        .divergence-hud {
+            position: absolute;
+            top: 84px;
+            left: 20px;
+            width: 340px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--panel-border);
+            border-radius: 12px;
+            padding: 14px 16px;
+            z-index: 100;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+        }
+
+        .divergence-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--cyan);
+            margin-bottom: 8px;
+        }
+
+        .divergence-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 10px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .lbl-healthy { color: var(--cyan); }
+        .lbl-super { color: var(--gold); }
+        .lbl-sick { color: var(--crimson); }
+
+        .divergence-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, var(--cyan), var(--gold), var(--crimson));
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .divergence-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid #000;
+            box-shadow: 0 0 10px #fff;
+            cursor: pointer;
+        }
+
+        .divergence-meta {
+            margin-top: 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        /* ─── BOTTOM ABE COCKPIT BAR ─── */
+        .abe-cockpit {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--panel-border);
+            border-radius: 14px;
+            padding: 8px 16px;
+            z-index: 100;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+        }
+
+        .cockpit-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-main);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            padding: 8px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .cockpit-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .cockpit-btn.freeze-active {
+            background: rgba(6, 182, 212, 0.2);
+            color: var(--cyan);
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px var(--cyan-glow);
+        }
+
+        .cockpit-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .speed-cluster {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .speed-slider {
+            width: 90px;
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            outline: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+        }
+
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--gold);
+            cursor: pointer;
+        }
+
+        .speed-val {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--gold);
+            width: 28px;
+        }
+
+        .style-picker {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .style-pill {
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: var(--text-muted);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .style-pill.active {
+            background: rgba(255, 255, 255, 0.15);
+            color: #fff;
+            border-color: #fff;
+        }
+
+        /* ─── VIEWPORT LABELS (HUD OVERLAY) ─── */
+        .viewport-label {
+            position: absolute;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            pointer-events: none;
+            z-index: 50;
+            transition: opacity 0.3s;
+        }
+
+        #vp-label-1 { top: 80px; left: 24px; color: var(--cyan); }
+        #vp-label-2 { top: 80px; left: 51%; color: var(--crimson); }
+        #vp-label-3 { bottom: 84px; left: 24px; color: var(--gold); }
+        #vp-label-4 { bottom: 84px; left: 51%; color: #a78bfa; }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <!-- VIEWPORT HUD LABELS -->
+    <div id="vp-label-1" class="viewport-label">CAMERA ALPHA (HEALTHY WT)</div>
+    <div id="vp-label-2" class="viewport-label">CAMERA BETA (ΔF508 MUTANT)</div>
+    <div id="vp-label-3" class="viewport-label">ANOTHEN VIEW (FROM ABOVE)</div>
+    <div id="vp-label-4" class="viewport-label">MACRO AIRWAY CATHEDRAL</div>
+
+    <!-- TOP BAR HUD -->
+    <header class="top-hud">
+        <div class="brand-cluster">
+            <span class="brand-badge">MAVERICK 50/50</span>
+            <div class="brand-title">
+                PHAZE ENGINE
+                <span class="brand-subtitle">Universal Biological Multicam v1.0</span>
+            </div>
+        </div>
+
+        <div class="layout-selector">
+            <button class="layout-btn active" data-layout="dual">
+                <span>◫</span> DUAL SPLIT
+            </button>
+            <button class="layout-btn" data-layout="solo">
+                <span>□</span> SOLO
+            </button>
+            <button class="layout-btn" data-layout="quad">
+                <span>田</span> QUAD 2x2
+            </button>
+            <button class="layout-btn" data-layout="tsplit">
+                <span>⊥</span> T-SPLIT
+            </button>
+        </div>
+    </header>
+
+    <!-- QUANTUM SUPERPOSITION SLIDER -->
+    <div class="divergence-hud">
+        <div class="divergence-title">
+            <span>Divergence Superposition</span>
+            <span id="divergence-pct">50%</span>
+        </div>
+        <div class="divergence-labels">
+            <span class="lbl-healthy">100% WT</span>
+            <span class="lbl-super">50/50 OVERLAP</span>
+            <span class="lbl-sick">100% ΔF508</span>
+        </div>
+        <input type="range" class="divergence-slider" id="superposition-slider" min="0" max="100" value="50">
+        <div class="divergence-meta" id="divergence-description">
+            Superimposing Healthy & Misfolded in identical coordinates. Backbone aligns within 0.4 Å across 98% of structure; fractures into gold vs crimson at Phe508 cleft.
+        </div>
+    </div>
+
+    <!-- GIMP-STYLE PHAZING LAYERS DOCK -->
+    <div class="phazing-dock">
+        <div class="dock-header">
+            <div class="dock-title">
+                <span>👁️ Phazing Layers</span>
+            </div>
+            <span class="dock-tag">GIMP-STYLE</span>
+        </div>
+
+        <div class="layer-list">
+            <!-- LAYER 1: ORANGE BALL -->
+            <div class="layer-card">
+                <div class="layer-top">
+                    <div class="layer-info">
+                        <div class="layer-color-dot" style="background: var(--orange); box-shadow: 0 0 8px var(--orange);"></div>
+                        <span>Phe508 Anchor (Orange Ball)</span>
+                    </div>
+                    <button class="eye-toggle active" data-layer="p508">👁️</button>
+                </div>
+                <div class="layer-slider-row">
+                    <input type="range" class="phaze-range" data-layer="p508" min="0" max="100" value="100">
+                    <span class="layer-val" id="val-p508">100%</span>
+                </div>
+            </div>
+
+            <!-- LAYER 2: NBD1 GOLDEN FOLD -->
+            <div class="layer-card">
+                <div class="layer-top">
+                    <div class="layer-info">
+                        <div class="layer-color-dot" style="background: var(--gold); box-shadow: 0 0 8px var(--gold);"></div>
+                        <span>NBD1 Latch (Res 389–678)</span>
+                    </div>
+                    <button class="eye-toggle active" data-layer="nbd1">👁️</button>
+                </div>
+                <div class="layer-slider-row">
+                    <input type="range" class="phaze-range" data-layer="nbd1" min="0" max="100" value="100">
+                    <span class="layer-val" id="val-nbd1">100%</span>
+                </div>
+            </div>
+
+            <!-- LAYER 3: ICL4 CYAN SOCKET -->
+            <div class="layer-card">
+                <div class="layer-top">
+                    <div class="layer-info">
+                        <div class="layer-color-dot" style="background: var(--cyan); box-shadow: 0 0 8px var(--cyan);"></div>
+                        <span>ICL4 Socket (Res 1040–1085)</span>
+                    </div>
+                    <button class="eye-toggle active" data-layer="icl4">👁️</button>
+                </div>
+                <div class="layer-slider-row">
+                    <input type="range" class="phaze-range" data-layer="icl4" min="0" max="100" value="100">
+                    <span class="layer-val" id="val-icl4">100%</span>
+                </div>
+            </div>
+
+            <!-- LAYER 4: CATHEDRAL & SKYBOX -->
+            <div class="layer-card">
+                <div class="layer-top">
+                    <div class="layer-info">
+                        <div class="layer-color-dot" style="background: #3b82f6;"></div>
+                        <span>Cathedral Barrel & Galaxy</span>
+                    </div>
+                    <button class="eye-toggle active" data-layer="channel">👁️</button>
+                </div>
+                <div class="layer-slider-row">
+                    <input type="range" class="phaze-range" data-layer="channel" min="0" max="100" value="45">
+                    <span class="layer-val" id="val-channel">45%</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="dock-presets">
+            <button class="preset-btn" id="preset-solo">Solo Anchor</button>
+            <button class="preset-btn" id="preset-pocket">The Pocket</button>
+            <button class="preset-btn" id="preset-universe">Universe</button>
+        </div>
+    </div>
+
+    <!-- BOTTOM ABE COCKPIT -->
+    <div class="abe-cockpit">
+        <button class="cockpit-btn" id="btn-chronos">
+            <span>⏸️</span> CHRONOS FREEZE (Space)
+        </button>
+
+        <button class="cockpit-btn" id="btn-lock">
+            <span>🎯</span> LOCK TARGET (L)
+        </button>
+
+        <div class="cockpit-divider"></div>
+
+        <div class="speed-cluster">
+            <span>DILATION:</span>
+            <input type="range" class="speed-slider" id="speed-range" min="5" max="200" value="100">
+            <span class="speed-val" id="speed-val">1.0x</span>
+        </div>
+
+        <div class="cockpit-divider"></div>
+
+        <div class="style-picker">
+            <button class="style-pill active" data-style="photoreal">Photoreal</button>
+            <button class="style-pill" data-style="ink">Ink B&W</button>
+            <button class="style-pill" data-style="neon">Cyber Neon</button>
+            <button class="style-pill" data-style="aurora">Aurora</button>
+        </div>
+
+        <div class="cockpit-divider"></div>
+
+        <button class="cockpit-btn" id="btn-snapshot">
+            <span>📸</span> 4K PNG (P)
+        </button>
+    </div>
+
+    <!-- ─── PHAZE ENGINE CORE SCRIPT ─── -->
+    <script>
+        // ─── 1. GLOBAL STATE ───
+        const EngineState = {
+            layout: 'dual', // 'dual', 'solo', 'quad', 'tsplit'
+            isFrozen: false,
+            speed: 1.0,
+            style: 'photoreal',
+            superposition: 0.5, // 0 = 100% WT, 0.5 = 50/50, 1 = 100% Mutant
+            targetLock: true,
+            layers: {
+                p508: 1.0,
+                nbd1: 1.0,
+                icl4: 1.0,
+                channel: 0.45
+            },
+            time: 0
+        };
+
+        const P508_COORDS = new THREE.Vector3(1.53, 4.22, -0.84); // Centroid offset in scaled space
+
+        // ─── 2. THREE.JS INITIALIZATION ───
+        const container = document.getElementById('canvas-container');
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setScissorTest(true);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+
+        // Atmospheric Galaxy Nebula Dome
+        const skyGeometry = new THREE.SphereGeometry(60, 32, 32);
+        const skyMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                u_altitude: { value: 0.5 },
+                u_time: { value: 0 }
+            },
+            vertexShader: `
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                    vWorldPosition = worldPosition.xyz;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float u_altitude;
+                uniform float u_time;
+                varying vec3 vWorldPosition;
+                void main() {
+                    vec3 dir = normalize(vWorldPosition);
+                    // Cosmic Space (Deep Violet/Black)
+                    vec3 spaceColor = mix(vec3(0.02, 0.01, 0.05), vec3(0.08, 0.05, 0.16), dir.y * 0.5 + 0.5);
+                    // Living Cellular Interior (Glowing Cyan-Blue Sky of Earth)
+                    vec3 cellularSky = mix(vec3(0.05, 0.25, 0.45), vec3(0.02, 0.1, 0.25), dir.y * 0.5 + 0.5);
+                    // Piercing Rayleigh Transition
+                    vec3 finalSky = mix(cellularSky, spaceColor, smoothstep(0.2, 0.8, u_altitude));
+                    gl_FragColor = vec4(finalSky, 1.0);
+                }
+            `,
+            side: THREE.BackSide
+        });
+        const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+        scene.add(skyDome);
+
+        // Distant Star Field
+        const starCount = 600;
+        const starGeo = new THREE.BufferGeometry();
+        const starPositions = new Float32Array(starCount * 3);
+        for (let i = 0; i < starCount * 3; i += 3) {
+            const v = new THREE.Vector3(
+                (Math.random() - 0.5) * 80,
+                (Math.random() - 0.5) * 80,
+                (Math.random() - 0.5) * 80
+            ).normalize().multiplyScalar(55);
+            starPositions[i] = v.x;
+            starPositions[i+1] = v.y;
+            starPositions[i+2] = v.z;
+        }
+        starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+        const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.8, transparent: true, opacity: 0.7 });
+        const starField = new THREE.Points(starGeo, starMat);
+        scene.add(starField);
+
+        // Studio 3-Point Lighting
+        const ambientLight = new THREE.AmbientLight(0x1a243b, 1.2);
+        scene.add(ambientLight);
+
+        const keyLight = new THREE.DirectionalLight(0xfff5e6, 2.2);
+        keyLight.position.set(12, 18, 14);
+        scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0x06b6d4, 1.4);
+        fillLight.position.set(-14, 6, -10);
+        scene.add(fillLight);
+
+        const rimLight = new THREE.DirectionalLight(0xfacc15, 2.8);
+        rimLight.position.set(0, -12, -14);
+        scene.add(rimLight);
+
+        // ─── 3. CAMERAS (MULTICAM QUAD) ───
+        const cameraAlpha = new THREE.PerspectiveCamera(40, 1, 0.1, 100); // Orbit Left (Healthy)
+        const cameraBeta  = new THREE.PerspectiveCamera(40, 1, 0.1, 100); // Orbit Right (Mutant)
+        const cameraAnothen = new THREE.PerspectiveCamera(45, 1, 0.1, 100); // From Above (ἄνωθεν)
+        const cameraMacro = new THREE.PerspectiveCamera(38, 1, 0.1, 100); // Wide Cleft Panorama
+
+        const controlsAlpha = new THREE.OrbitControls(cameraAlpha, container);
+        controlsAlpha.enableDamping = true;
+        controlsAlpha.target.copy(P508_COORDS);
+
+        // ─── 4. BIOLOGICAL MODEL ASSEMBLE (ALPHAFOLD INVARIANT SPINE) ───
+        const modelGroupHealthy = new THREE.Group();
+        const modelGroupMutant  = new THREE.Group();
+        scene.add(modelGroupHealthy);
+        scene.add(modelGroupMutant);
+
+        // Parse coordinates from window.PDB_AF if available, else generate procedural CFTR spine
+        let rawCoords = [];
+        if (window.PDB_AF && window.PDB_AF.length > 100) {
+            rawCoords = window.PDB_AF;
+        } else {
+            // Procedural 1480 C-alpha fallback
+            for (let i = 0; i < 1480; i++) {
+                const t = i / 1480 * Math.PI * 18;
+                const r = 2.5 + Math.sin(i * 0.08) * 1.2;
+                rawCoords.push([r * Math.cos(t), (i / 1480 - 0.5) * 18, r * Math.sin(t)]);
+            }
+        }
+
+        // Center coordinates
+        let cx = 0, cy = 0, cz = 0;
+        for (let pt of rawCoords) { cx += pt[0]; cy += pt[1]; cz += pt[2]; }
+        cx /= rawCoords.length; cy /= rawCoords.length; cz /= rawCoords.length;
+
+        // Splitting into domain curve arrays
+        const channelPts = [], nbd1Pts = [], icl4Pts = [], mutantNbd1Pts = [];
+        let p508Pos = new THREE.Vector3();
+
+        for (let i = 0; i < rawCoords.length; i++) {
+            const v = new THREE.Vector3(
+                (rawCoords[i][0] - cx) * 0.1,
+                (rawCoords[i][1] - cy) * 0.1,
+                (rawCoords[i][2] - cz) * 0.1
+            );
+
+            if (i === 508) p508Pos.copy(v);
+
+            // Domain Classification
+            if (i >= 389 && i <= 678) {
+                nbd1Pts.push(v);
+                // In mutant: displace Phe508 cleft by unseating loop
+                const distFrom508 = Math.abs(i - 508);
+                if (distFrom508 < 20) {
+                    const offset = new THREE.Vector3(0.6, -0.4, 0.5).multiplyScalar(Math.exp(-distFrom508 * 0.15));
+                    mutantNbd1Pts.push(v.clone().add(offset));
+                } else {
+                    mutantNbd1Pts.push(v.clone());
+                }
+            } else if (i >= 1040 && i <= 1085) {
+                icl4Pts.push(v);
+            } else {
+                channelPts.push(v);
+            }
+        }
+
+        P508_COORDS.copy(p508Pos);
+        controlsAlpha.target.copy(P508_COORDS);
+
+        // Materials
+        const matChannel = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            roughness: 0.35,
+            metalness: 0.2,
+            transparent: true,
+            opacity: EngineState.layers.channel
+        });
+
+        const matNbd1 = new THREE.MeshStandardMaterial({
+            color: 0xfacc15,
+            emissive: 0x713f12,
+            roughness: 0.3,
+            metalness: 0.4,
+            transparent: true,
+            opacity: EngineState.layers.nbd1
+        });
+
+        const matIcl4 = new THREE.MeshStandardMaterial({
+            color: 0x06b6d4,
+            emissive: 0x164e63,
+            roughness: 0.3,
+            metalness: 0.4,
+            transparent: true,
+            opacity: EngineState.layers.icl4
+        });
+
+        const matMutantNbd1 = new THREE.MeshStandardMaterial({
+            color: 0xef4444,
+            emissive: 0x7f1d1d,
+            roughness: 0.4,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.5
+        });
+
+        // The Solitary Orange Ball (Phe508)
+        const p508Geo = new THREE.SphereGeometry(0.38, 32, 32);
+        const p508Mat = new THREE.MeshStandardMaterial({
+            color: 0xf97316,
+            emissive: 0xf97316,
+            emissiveIntensity: 0.8,
+            roughness: 0.2,
+            metalness: 0.5,
+            transparent: true,
+            opacity: EngineState.layers.p508
+        });
+        const p508Mesh = new THREE.Mesh(p508Geo, p508Mat);
+        p508Mesh.position.copy(P508_COORDS);
+        modelGroupHealthy.add(p508Mesh);
+
+        // Helper to build smooth ribbon tubes from points
+        function buildTube(pts, mat, radius = 0.12) {
+            if (pts.length < 2) return new THREE.Group();
+            const curve = new THREE.CatmullRomCurve3(pts);
+            const geo = new THREE.TubeGeometry(curve, Math.min(pts.length * 3, 500), radius, 8, false);
+            return new THREE.Mesh(geo, mat);
+        }
+
+        const meshChannel = buildTube(channelPts, matChannel, 0.11);
+        const meshNbd1    = buildTube(nbd1Pts, matNbd1, 0.14);
+        const meshIcl4    = buildTube(icl4Pts, matIcl4, 0.14);
+        const meshMutant  = buildTube(mutantNbd1Pts, matMutantNbd1, 0.14);
+
+        modelGroupHealthy.add(meshChannel);
+        modelGroupHealthy.add(meshNbd1);
+        modelGroupHealthy.add(meshIcl4);
+        modelGroupMutant.add(meshMutant);
+
+        // ─── 5. MULTICAM SCISSOR RENDERING ───
+        function updateLayout() {
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            const lbl1 = document.getElementById('vp-label-1');
+            const lbl2 = document.getElementById('vp-label-2');
+            const lbl3 = document.getElementById('vp-label-3');
+            const lbl4 = document.getElementById('vp-label-4');
+
+            if (EngineState.layout === 'solo') {
+                lbl1.style.display = 'block';
+                lbl2.style.display = 'none';
+                lbl3.style.display = 'none';
+                lbl4.style.display = 'none';
+            } else if (EngineState.layout === 'dual') {
+                lbl1.style.display = 'block';
+                lbl2.style.display = 'block';
+                lbl3.style.display = 'none';
+                lbl4.style.display = 'none';
+            } else if (EngineState.layout === 'tsplit') {
+                lbl1.style.display = 'block';
+                lbl2.style.display = 'block';
+                lbl3.style.display = 'block';
+                lbl4.style.display = 'none';
+            } else { // quad
+                lbl1.style.display = 'block';
+                lbl2.style.display = 'block';
+                lbl3.style.display = 'block';
+                lbl4.style.display = 'block';
+            }
+        }
+
+        // ─── 6. INTERACTIVE EVENTS & CONTROLS ───
+        // Layout buttons
+        document.querySelectorAll('.layout-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                EngineState.layout = btn.dataset.layout;
+                updateLayout();
+            });
+        });
+
+        // GIMP Dock Sliders
+        document.querySelectorAll('.phaze-range').forEach(range => {
+            range.addEventListener('input', (e) => {
+                const layer = e.target.dataset.layer;
+                const val = parseFloat(e.target.value) / 100;
+                EngineState.layers[layer] = val;
+                document.getElementById(`val-${layer}`).textContent = `${e.target.value}%`;
+                applyLayerOpacities();
+            });
+        });
+
+        // Eye Toggles
+        document.querySelectorAll('.eye-toggle').forEach(eye => {
+            eye.addEventListener('click', (e) => {
+                const layer = eye.dataset.layer;
+                eye.classList.toggle('active');
+                const isVis = eye.classList.contains('active');
+                const range = document.querySelector(`.phaze-range[data-layer="${layer}"]`);
+                if (isVis) {
+                    EngineState.layers[layer] = parseFloat(range.value) / 100 || 1.0;
+                } else {
+                    EngineState.layers[layer] = 0.0;
+                }
+                applyLayerOpacities();
+            });
+        });
+
+        function applyLayerOpacities() {
+            matChannel.opacity = EngineState.layers.channel;
+            matNbd1.opacity = EngineState.layers.nbd1;
+            matIcl4.opacity = EngineState.layers.icl4;
+            p508Mat.opacity = EngineState.layers.p508;
+        }
+
+        // Presets
+        document.getElementById('preset-solo').addEventListener('click', () => {
+            EngineState.layers = { p508: 1.0, nbd1: 0.0, icl4: 0.0, channel: 0.0 };
+            syncSliders();
+        });
+
+        document.getElementById('preset-pocket').addEventListener('click', () => {
+            EngineState.layers = { p508: 1.0, nbd1: 1.0, icl4: 1.0, channel: 0.05 };
+            syncSliders();
+        });
+
+        document.getElementById('preset-universe').addEventListener('click', () => {
+            EngineState.layers = { p508: 1.0, nbd1: 1.0, icl4: 1.0, channel: 0.65 };
+            syncSliders();
+        });
+
+        function syncSliders() {
+            for (let k in EngineState.layers) {
+                const pct = Math.round(EngineState.layers[k] * 100);
+                const slider = document.querySelector(`.phaze-range[data-layer="${k}"]`);
+                if (slider) slider.value = pct;
+                const valLbl = document.getElementById(`val-${k}`);
+                if (valLbl) valLbl.textContent = `${pct}%`;
+            }
+            applyLayerOpacities();
+        }
+
+        // Superposition Slider
+        const superSlider = document.getElementById('superposition-slider');
+        superSlider.addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value) / 100;
+            EngineState.superposition = v;
+            document.getElementById('divergence-pct').textContent = `${e.target.value}%`;
+
+            // Healthy fade vs Sick fade
+            if (v <= 0.5) {
+                modelGroupHealthy.visible = true;
+                modelGroupMutant.visible = (v > 0.05);
+                matMutantNbd1.opacity = v * 1.5;
+            } else {
+                modelGroupHealthy.visible = (v < 0.95);
+                modelGroupMutant.visible = true;
+                matNbd1.opacity = (1 - v) * 1.5;
+                p508Mat.opacity = (1 - v) * 2.0;
+            }
+        });
+
+        // ABE Cockpit Buttons
+        const btnFreeze = document.getElementById('btn-chronos');
+        btnFreeze.addEventListener('click', () => toggleFreeze());
+
+        function toggleFreeze() {
+            EngineState.isFrozen = !EngineState.isFrozen;
+            btnFreeze.classList.toggle('freeze-active', EngineState.isFrozen);
+            btnFreeze.innerHTML = EngineState.isFrozen ? '<span>▶️</span> RESUME (Space)' : '<span>⏸️</span> CHRONOS FREEZE (Space)';
+        }
+
+        // Spacebar CHRONOS hotkey
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault();
+                toggleFreeze();
+            } else if (e.code === 'KeyL') {
+                controlsAlpha.target.copy(P508_COORDS);
+            } else if (e.code === 'KeyP') {
+                takeSnapshot();
+            }
+        });
+
+        // Speed Dilation
+        document.getElementById('speed-range').addEventListener('input', (e) => {
+            EngineState.speed = parseFloat(e.target.value) / 100;
+            document.getElementById('speed-val').textContent = `${EngineState.speed.toFixed(1)}x`;
+        });
+
+        // Lock Target
+        document.getElementById('btn-lock').addEventListener('click', () => {
+            controlsAlpha.target.copy(P508_COORDS);
+        });
+
+        // 4K PNG Snapshot
+        document.getElementById('btn-snapshot').addEventListener('click', takeSnapshot);
+
+        function takeSnapshot() {
+            const link = document.createElement('a');
+            link.download = `Phaze_Engine_CFTR_${Date.now()}.png`;
+            link.href = renderer.domElement.toDataURL('image/png');
+            link.click();
+        }
+
+        // Style Switcher
+        document.querySelectorAll('.style-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelectorAll('.style-pill').forEach(p => p.classList.remove('active'));
+                pill.classList.add('active');
+                EngineState.style = pill.dataset.style;
+                applyStyleMode();
+            });
+        });
+
+        function applyStyleMode() {
+            if (EngineState.style === 'photoreal') {
+                matNbd1.color.setHex(0xfacc15);
+                matIcl4.color.setHex(0x06b6d4);
+                matChannel.color.setHex(0x1e293b);
+                p508Mat.color.setHex(0xf97316);
+            } else if (EngineState.style === 'ink') {
+                matNbd1.color.setHex(0x111111);
+                matIcl4.color.setHex(0x111111);
+                matChannel.color.setHex(0x222222);
+                p508Mat.color.setHex(0x000000);
+            } else if (EngineState.style === 'neon') {
+                matNbd1.color.setHex(0xff007f);
+                matIcl4.color.setHex(0x00f0ff);
+                matChannel.color.setHex(0x4338ca);
+                p508Mat.color.setHex(0x39ff14);
+            } else if (EngineState.style === 'aurora') {
+                matNbd1.color.setHex(0x10b981);
+                matIcl4.color.setHex(0x8b5cf6);
+                matChannel.color.setHex(0x047857);
+                p508Mat.color.setHex(0xfbbf24);
+            }
+        }
+
+        // ─── 7. ANIMATION RENDER LOOP ───
+        let clock = 0;
+
+        function renderViewport(camera, left, bottom, width, height) {
+            renderer.setViewport(left, bottom, width, height);
+            renderer.setScissor(left, bottom, width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.render(scene, camera);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            if (!EngineState.isFrozen) {
+                clock += 0.015 * EngineState.speed;
+                EngineState.time = clock;
+            }
+
+            // Continuous parametric camera sweeps
+            const R_orbit = 3.6;
+            const cx = P508_COORDS.x, cy = P508_COORDS.y, cz = P508_COORDS.z;
+
+            // Cam Alpha: Orbit Left
+            cameraAlpha.position.set(
+                cx + R_orbit * Math.cos(clock * 0.4),
+                cy - 0.75 + Math.sin(clock * 0.2) * 0.3,
+                cz + R_orbit * Math.sin(clock * 0.4)
+            );
+            cameraAlpha.lookAt(P508_COORDS);
+
+            // Cam Beta: Counter Orbit Right
+            cameraBeta.position.set(
+                cx + R_orbit * Math.cos(-clock * 0.4 + Math.PI),
+                cy - 0.75 + Math.sin(-clock * 0.2) * 0.3,
+                cz + R_orbit * Math.sin(-clock * 0.4 + Math.PI)
+            );
+            cameraBeta.lookAt(P508_COORDS);
+
+            // Cam Anothen: Looking Down From Above into Pore Chimney (ἄνωθεν)
+            cameraAnothen.position.set(cx, cy + 7.5, cz);
+            cameraAnothen.lookAt(cx, cy, cz);
+
+            // Cam Macro: Wide Cleft Panorama
+            cameraMacro.position.set(cx + 6.5, cy + 1.2, cz + 5.5);
+            cameraMacro.lookAt(P508_COORDS);
+
+            // Atmospheric Rayleigh scattering calculation
+            const camDist = cameraAlpha.position.distanceTo(P508_COORDS);
+            skyMaterial.uniforms.u_altitude.value = THREE.MathUtils.clamp((camDist - 2.5) / 5.0, 0.0, 1.0);
+            skyMaterial.uniforms.u_time.value = clock;
+
+            // Pulsing stellar orange ball
+            p508Mat.emissiveIntensity = 0.6 + Math.sin(clock * 3.0) * 0.3;
+
+            // Render viewports according to active layout
+            const W = window.innerWidth;
+            const H = window.innerHeight;
+
+            if (EngineState.layout === 'solo') {
+                renderViewport(cameraAlpha, 0, 0, W, H);
+            } else if (EngineState.layout === 'dual') {
+                renderViewport(cameraAlpha, 0, 0, W * 0.5, H);
+                renderViewport(cameraBeta, W * 0.5, 0, W * 0.5, H);
+            } else if (EngineState.layout === 'tsplit') {
+                renderViewport(cameraAlpha, 0, H * 0.45, W * 0.5, H * 0.55);
+                renderViewport(cameraBeta, W * 0.5, H * 0.45, W * 0.5, H * 0.55);
+                renderViewport(cameraAnothen, 0, 0, W, H * 0.45);
+            } else if (EngineState.layout === 'quad') {
+                renderViewport(cameraAlpha, 0, H * 0.5, W * 0.5, H * 0.5);
+                renderViewport(cameraBeta, W * 0.5, H * 0.5, W * 0.5, H * 0.5);
+                renderViewport(cameraAnothen, 0, 0, W * 0.5, H * 0.5);
+                renderViewport(cameraMacro, W * 0.5, 0, W * 0.5, H * 0.5);
+            }
+        }
+
+        window.addEventListener('resize', () => {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Boot
+        updateLayout();
+        animate();
+    </script>
+</body>
+</html>
