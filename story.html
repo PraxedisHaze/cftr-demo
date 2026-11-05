@@ -33,16 +33,17 @@
   #legend span { display:none; }
   #legend span.on { display:block; }
   .sw { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:7px; vertical-align:-1px; }
-  #explore { position:absolute; left:16px; bottom:200px; z-index:6; width:310px; background:rgba(15,23,42,.88); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12.5px; color:var(--muted); box-shadow:0 4px 18px rgba(0,0,0,.4); }
+  #explore { position:absolute; left:16px; bottom:200px; z-index:6; width:310px; min-height:104px; box-sizing:border-box; background:rgba(15,23,42,.9); border:1px solid var(--line); border-radius:10px; padding:10px 12px 8px; font-size:12.5px; color:var(--muted); box-shadow:0 4px 18px rgba(0,0,0,.4); }
   #explore input[type=range] { width:100%; accent-color:var(--hot); cursor:pointer; margin:6px 0 3px; display:block; }
   #explore .trackWrap { position:relative; width:100%; margin:4px 0 6px; }
   #explore .snapMarker { position:absolute; top:-1px; width:3px; height:18px; background:var(--hot); border-radius:1px; pointer-events:none; transform:translateX(-50%); box-shadow:0 0 8px var(--hot); opacity:0.85; }
-  #explore .row { display:flex; justify-content:space-between; align-items:center; margin-top:2px; }
+  #explore .row { display:flex; justify-content:space-between; align-items:center; height:24px; }
   #explore b { color:var(--text); }
   #explore .btnSnap { background:#7c2d12; color:#ffedd5; border:1px solid #ea580c; border-radius:6px; padding:3px 8px; font-size:11px; font-weight:600; cursor:pointer; transition:background .15s; }
   #explore .btnSnap:hover { background:#9a3412; }
   #explore .nudge { background:#1e293b; color:var(--text); border:1px solid #334155; border-radius:4px; padding:2px 7px; font-size:11px; cursor:pointer; }
   #explore .nudge:hover { background:#334155; }
+  #exploreSub { height:18px; line-height:18px; font-size:11.5px; color:#f97316; margin-top:3px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   #capWrap { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); z-index:7; width:min(900px, calc(100% - 32px)); background:rgba(8,13,28,.9); border:1px solid #334155; border-radius:14px; padding:14px 22px 12px; box-shadow:0 8px 30px rgba(0,0,0,.45); }
   #caption { font-size:23px; line-height:1.4; font-weight:500; min-height:64px; transition:opacity .35s; }
   #caption em { font-style:normal; color:var(--hot); font-weight:650; }
@@ -126,12 +127,13 @@
       <div class="snapMarker" id="snapMarker" style="left:50%;" title="Residue 508 (Phe508)"></div>
     </div>
     <div class="row">
-      <div id="exploreLabel">Building block <b>508</b></div>
+      <div id="exploreLabel">Building block <b id="resNum">508</b></div>
       <div style="display:flex; gap:4px;">
         <button class="nudge" id="btnPrevRes" title="Step -1 residue">&minus;1</button>
         <button class="nudge" id="btnNextRes" title="Step +1 residue">+1</button>
       </div>
     </div>
+    <div id="exploreSub">Phe508 &middot; missing in cystic fibrosis</div>
   </div>
   <div id="capWrap">
     <div id="caption"></div>
@@ -566,8 +568,14 @@
   function syncSlider(r) {
     var res = Math.max(1, Math.min(1480, Math.round(r)));
     el('resSlider').value = resToSlider(res);
-    var lowConf = ca[res] && ca[res].b < 50;
-    el('exploreLabel').innerHTML = 'Building block <b>' + res + '</b>' + (res === 508 ? ' (Phe508 \u2014 missing in CF)' : lowConf ? ' (flexible stretch)' : '');
+    var numEl = el('resNum');
+    if (numEl) numEl.textContent = res;
+    else el('exploreLabel').innerHTML = 'Building block <b>' + res + '</b>';
+    var subEl = el('exploreSub');
+    if (subEl) {
+      var lowConf = ca[res] && ca[res].b < 50;
+      subEl.textContent = res === 508 ? 'Phe508 \u2014 missing in cystic fibrosis' : lowConf ? 'Flexible loop (low confidence)' : '';
+    }
   }
 
   var SCENES = [
