@@ -538,12 +538,22 @@
     7: { t: 'Apical Surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'No ion efflux: dry, thick mucus']] },
     8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Channels degraded'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking & gating restored']] }
   };
+  function syncSVGAnimations(on) {
+    var svgs = document.querySelectorAll('#inset svg');
+    svgs.forEach(function (s) {
+      try {
+        if (on && s.unpauseAnimations) s.unpauseAnimations();
+        else if (!on && s.pauseAnimations) s.pauseAnimations();
+      } catch (e) {}
+    });
+  }
   function showInset(i) {
     var d = INSETS[i], box = el('inset');
     if (!d) { box.style.display = 'none'; box.innerHTML = ''; return; }
     var h = '<div class="t">' + d.t + '</div><div class="row">';
     d.cells.forEach(function (c) { h += '<div class="cell"><b>' + c[0] + '</b>' + c[1] + '<div>' + c[2] + '</div></div>'; });
     box.innerHTML = h + '</div>'; box.style.display = 'block';
+    if (!playing) setTimeout(function () { syncSVGAnimations(false); }, 30);
   }
   function legend(keys) { el('legend').style.display = keys.length ? 'flex' : 'none'; document.querySelectorAll('#legend span').forEach(function (s) { s.classList.toggle('on', keys.indexOf(s.dataset.k) >= 0); }); }
 
@@ -764,6 +774,7 @@
   function setPlaying(on) {
     playing = on; el('btnPlay').innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Play story';
     if (on) stepStart = performance.now();
+    syncSVGAnimations(on);
   }
 
   // UI
