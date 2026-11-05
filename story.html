@@ -19,9 +19,11 @@
   #loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:var(--muted); z-index:4; font-size:15px; }
   #stepTag { position:absolute; left:16px; top:14px; z-index:6; font-size:13px; letter-spacing:1.4px; text-transform:uppercase; color:var(--muted); background:rgba(15,23,42,.75); border:1px solid var(--line); border-radius:8px; padding:6px 10px; }
   #stepTag b { color:var(--text); }
+  #illusBadge { position:absolute; left:16px; top:52px; z-index:8; font-size:11.5px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:#fbbf24; background:rgba(30,15,5,.92); border:1.5px solid #f59e0b; border-radius:8px; padding:6px 12px; box-shadow:0 0 16px rgba(245,158,11,.3); display:none; }
+  #illusBadge span { color:#fde68a; font-weight:400; text-transform:none; letter-spacing:0; margin-left:6px; font-size:11.5px; }
   #counter { position:absolute; left:16px; top:54px; z-index:6; font-size:15px; background:rgba(15,23,42,.8); border:1px solid var(--hot); border-radius:8px; padding:6px 10px; font-variant-numeric:tabular-nums; display:none; }
   #counter b { color:var(--hot); font-size:20px; }
-  #scaleTag { position:absolute; left:16px; top:54px; z-index:6; font-size:14px; background:rgba(15,23,42,.82); border:1px solid #38bdf8; border-radius:8px; padding:6px 10px; display:none; }
+  #scaleTag { position:absolute; left:16px; top:92px; z-index:6; font-size:13px; background:rgba(15,23,42,.85); border:1px solid #38bdf8; border-radius:8px; padding:5px 10px; display:none; }
   #inset { position:absolute; right:16px; top:14px; z-index:6; width:300px; background:rgba(11,19,36,.88); border:1px solid #334155; border-radius:10px; padding:8px 10px 6px; display:none; }
   #inset .t { font-size:13px; font-weight:600; margin-bottom:4px; }
   #inset .row { display:flex; gap:8px; }
@@ -54,6 +56,16 @@
   footer a { color:#93c5fd; text-decoration:none; }
   footer .cites span { margin-right:14px; }
   @media (max-width:820px){ #caption{font-size:20px;} #inset{width:220px;} #explore{display:none;} #legend{bottom:auto; top:60px; right:auto; left:16px;} }
+  @media (max-width:520px){
+    #capWrap { padding:14px 16px 12px; }
+    #controls { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    #controls button { padding:9px 5px; font-size:13px; white-space:nowrap; min-width:0; }
+    #btnBack { grid-column:1; grid-row:1; }
+    #btnPlay { grid-column:2; grid-row:1; }
+    #btnNext { grid-column:3; grid-row:1; }
+    #dots { grid-column:1 / -1; grid-row:2; padding:4px 0; }
+    #dots i { flex-shrink:0; }
+  }
 </style>
 </head>
 <body>
@@ -66,6 +78,7 @@
   <div id="viewer"></div>
   <div id="loading">Loading the 3D model...</div>
   <div id="stepTag">Step <b id="stepNum">1</b> of <span id="stepTot">9</span> &middot; <b id="stepName">The gate</b></div>
+  <div id="illusBadge">&#9888; ILLUSTRATION <span>(Artistic schematic &middot; not an MD simulation)</span></div>
   <div id="counter">Building block <b id="ctrNum">440</b> <span id="ctrNote"></span></div>
   <div id="inset"></div>
   <div id="scaleTag">Shrunk to atom size: each ball is a single atom</div>
@@ -119,33 +132,33 @@
   var STEP_MS = 7500;
 
   var STEPS = [
-    { name:'The gate', ms:9000,
-      cap:'This is CFTR, a tiny <em>gate</em> in the wall of your cells. It lets salt out, and the water that follows keeps mucus thin and slippery.',
-      small:'One CFTR protein: a chain of 1,480 building blocks (amino acids), folded up. The salt it lets out is chloride.' },
+    { name:'The gate', ms:9500,
+      cap:'This is CFTR, a vital <em>ion channel</em> in your cell membranes. It pumps <span class="b">chloride</span> and <span class="y">bicarbonate</span> out, drawing water along to keep airway mucus thin, alkaline, and clear.',
+      small:'One CFTR protein: 1,480 amino acids forming an ATP-gated anion channel. Exporting chloride (Cl⁻) and bicarbonate (HCO₃⁻) generates the osmotic pull that hydrates the mucosal surface.' },
     { name:'The fold', ms:9000,
-      cap:'To work, the gate has to fold into exactly the right shape, like origami. The <span class="y">yellow piece</span> is the part that goes wrong.',
-      small:'Yellow: NBD1 (nucleotide-binding domain 1), building blocks 423-646.' },
+      cap:'To function, the channel must fold into an intricate 3D machine. The <span class="y">yellow engine</span> (NBD1) powers the gate, but it is prone to misfolding.',
+      small:'Yellow: NBD1 (nucleotide-binding domain 1, residues 423–646). It binds ATP alongside NBD2 to dimerize and open the gate.' },
     { name:'The missing link', ms:10000,
-      cap:'In the most common form of cystic fibrosis, <em>one single building block</em> is missing. Out of 1,480, just this one: number 508.',
-      small:'Phenylalanine 508 (Phe508). Losing it is called F508del.' },
+      cap:'In ~90% of people with cystic fibrosis, <em>a single amino acid</em> is deleted from the sequence: phenylalanine at position 508.',
+      small:'Phenylalanine 508 (Phe508, loss denoted F508del). Removing just these 3 DNA base pairs destabilizes the entire domain.' },
     { name:'The handshake', ms:19000,
-      cap:'Number 508 sits right where two parts touch, like a handshake: the <span class="y">yellow piece</span> and a <span class="b">blue loop</span> reaching over from the other half of the gate.',
-      small:'NBD1 (yellow) meets ICL4, intracellular loop 4, building blocks 1035-1095 (blue). Phe508 tucks into a pocket on ICL4.' },
+      cap:'Position 508 forms a critical structural joint: the <span class="y">yellow engine</span> docks into a <span class="b">blue loop</span> extending from the channel pore.',
+      small:'NBD1 (yellow) meets ICL4 (intracellular loop 4, residues 1035–1095, blue). Phe508 slots directly into a hydrophobic pocket on ICL4 to lock the gate together.' },
     { name:'Inside the factory', ms:14000,
-      cap:'Shrink down inside the gate, where it is built. Watch the <span class="y">yellow piece</span> fold up and over you until <em>number 508</em> clicks into its pocket on the <span class="b">blue loop</span>.',
-      small:'Atom-scale close-up of the NBD1/ICL4 contact. The folding motion is hand-animated to illustrate the idea; the final locked shape is the real AlphaFold model.' },
+      cap:'Inside the cell during synthesis, watch the <span class="y">yellow engine</span> dock over you until <em>Phe508</em> seats firmly into its pocket on the <span class="b">blue loop</span>.',
+      small:'Atom-scale close-up of the NBD1/ICL4 interface. The folding trajectory is an artistic schematic/illustration; the final locked docking represents verified cryo-EM (PDB 6MSM) and AlphaFold.' },
     { name:'Without 508', ms:14000,
-      cap:'Now the same fold with <em>number 508 missing</em>. The <span class="y">yellow piece</span> swings in, but nothing fills the pocket, so it can\u2019t lock. It wobbles, then drifts apart.',
-      small:'Same shot with Phe508 removed (F508del). The glowing ring marks the empty pocket on ICL4.' },
+      cap:'Now the same fold with <em>number 508 deleted</em>. The <span class="y">yellow piece</span> swings in, but with an empty pocket, the joint cannot lock. It wobbles and destabilizes.',
+      small:'Artistic schematic with Phe508 absent (F508del). The glowing ring highlights the unoccupied ICL4 pocket that fails to achieve thermodynamic stability.' },
     { name:'The fold loosens', ms:10000,
-      cap:'Without number 508, the handshake is weak. The <span class="y">yellow piece</span> folds badly and the <span class="b">blue loop</span> can\u2019t grip it.',
-      small:'This step is an illustration, not a simulation: the faint blue shape is the normal position, the shifted loop is drawn to show the idea.' },
-    { name:'Thrown away', ms:9000,
-      cap:'The cell\u2019s quality control spots the badly folded gate and <em>throws most of it away</em>. Few gates reach the wall, salt can\u2019t get out, and mucus turns thick and sticky.',
-      small:'Misfolded CFTR is caught in the endoplasmic reticulum (the cell\u2019s protein factory) and broken down.' },
-    { name:'What medicines do', ms:10000,
-      cap:'Medicines called <span class="y">correctors</span> help more of the gate fold and reach the wall, and a second medicine helps it open. Trikafta combines both.',
-      small:'Trikafta = elexacaftor + tezacaftor (correctors) + ivacaftor (helps the gate open). The 3D shapes are computer models of the normal protein; for education only, not medical advice.' }
+      cap:'Without 508 anchoring the interface, the structural handshake fails. The domains misalign and the channel cannot hold its native shape.',
+      small:'Artistic illustration visualizing domain decoupling: the faint blue ghost is the normal wild-type conformation; the shifted loop illustrates structural instability.' },
+    { name:'Thrown away', ms:9500,
+      cap:'Endoplasmic reticulum quality control flags the unstable protein and <em>destroys it</em>. With few channels reaching the surface, chloride and bicarbonate are trapped, water is withheld, and mucus turns thick and sticky.',
+      small:'Misfolded CFTR is degraded via ERAD. Without bicarbonate to alkalize pH and uncoil mucins, and without chloride-driven osmosis, mucus collapses into a dense, stagnant gel that traps bacteria.' },
+    { name:'What medicines do', ms:10500,
+      cap:'Medicines called <span class="y">correctors</span> chaperone the protein so it reaches the surface, and a <span class="b">potentiator</span> holds the channel gate open so chloride and bicarbonate can flow.',
+      small:'Trikafta = elexacaftor + tezacaftor (folding/trafficking correctors) + ivacaftor (gating potentiator that increases open probability). For education only; not medical advice.' }
   ];
 
   function el(id) { return document.getElementById(id); }
@@ -432,33 +445,52 @@
     }, done, delay);
   }
 
-  // ---------- insets (simple cell-wall drawings) ----------
+  // ---------- insets (epithelial membrane & mucus mechanics) ----------
   function wallSVG(nGates, flow, mucus) {
-    var s = '<svg width="100%" viewBox="0 0 130 112" style="max-width:200px">';
-    var mh = mucus === 'thick' ? 34 : 12;
-    s += '<rect x="0" y="0" width="130" height="' + mh + '" fill="' + (mucus === 'thick' ? '#65a30d' : '#a3e635') + '" opacity="' + (mucus === 'thick' ? 0.75 : 0.35) + '"/>';
-    s += '<text x="4" y="' + (mh / 2 + 4) + '" font-size="9" fill="#0f172a">mucus</text>';
-    s += '<rect x="0" y="50" width="130" height="12" fill="#475569"/>';
+    var s = '<svg width="100%" viewBox="0 0 130 116" style="max-width:200px">';
+    var isThick = mucus === 'thick';
+    var mh = isThick ? 38 : 14;
+    // Mucus gel layer
+    s += '<rect x="0" y="0" width="130" height="' + mh + '" fill="' + (isThick ? '#4d531a' : '#84cc16') + '" opacity="' + (isThick ? '0.85' : '0.4') + '"/>';
+    s += '<text x="4" y="' + (mh / 2 + 3.5) + '" font-size="8.5" font-weight="600" fill="' + (isThick ? '#fef08a' : '#0f172a') + '">' + (isThick ? 'dehydrated mucus' : 'hydrated mucus') + '</text>';
+    // Airway surface liquid (ASL)
+    if (!isThick) {
+      s += '<rect x="0" y="' + mh + '" width="130" height="34" fill="#38bdf8" opacity="0.15"/>';
+      s += '<text x="4" y="' + (mh + 14) + '" font-size="7.5" fill="#38bdf8">water / ASL layer</text>';
+    }
+    // Cell membrane
+    s += '<rect x="0" y="50" width="130" height="12" fill="#334155"/>';
     var xs = []; for (var i = 0; i < nGates; i++) xs.push(Math.round(130 * (i + 1) / (nGates + 1)));
+    // CFTR channels
     xs.forEach(function (x) { s += '<rect x="' + (x - 5) + '" y="46" width="10" height="20" rx="3" fill="#ff5733"/>'; });
-    var k = 0;
-    xs.forEach(function (x) {
-      for (var j = 0; j < flow; j++) {
-        var dur = 2.2, beg = (j * dur / flow).toFixed(2);
-        s += '<circle cx="' + x + '" cy="100" r="2.6" fill="#e2e8f0"><animate attributeName="cy" values="104;56;' + (mh + 4) + '" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="1;1;0" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/></circle>';
-        k++;
-      }
-    });
-    // stuck salt inside when few gates
-    if (nGates < 3) for (var m = 0; m < 9; m++) s += '<circle cx="' + (12 + m * 13) + '" cy="' + (86 + (m % 3) * 8) + '" r="2.6" fill="#e2e8f0" opacity=".8"/>';
-    s += '<text x="4" y="110" font-size="8.5" fill="#94a3b8">inside the cell</text>';
+    if (flow > 0) {
+      xs.forEach(function (x, idx) {
+        for (var j = 0; j < flow; j++) {
+          var dur = 2.0, beg = (j * dur / flow + idx * 0.25).toFixed(2);
+          // Chloride (cyan)
+          s += '<circle cx="' + (x - 2) + '" cy="100" r="2.2" fill="#38bdf8"><animate attributeName="cy" values="104;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="1;1;0" dur="' + dur + 's" begin="' + beg + 's" repeatCount="indefinite"/></circle>';
+          // Bicarbonate (amber)
+          s += '<circle cx="' + (x + 2) + '" cy="100" r="2.2" fill="#fbbf24"><animate attributeName="cy" values="104;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + (beg + 0.4) + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="1;1;0" dur="' + dur + 's" begin="' + (beg + 0.4) + 's" repeatCount="indefinite"/></circle>';
+          // Osmotic Water (light blue)
+          s += '<circle cx="' + x + '" cy="100" r="1.6" fill="#e0f2fe"><animate attributeName="cy" values="104;54;' + (mh + 3) + '" dur="' + dur + 's" begin="' + (beg + 0.2) + 's" repeatCount="indefinite"/><animate attributeName="opacity" values="0.9;0.9;0" dur="' + dur + 's" begin="' + (beg + 0.2) + 's" repeatCount="indefinite"/></circle>';
+        }
+      });
+    }
+    // Trapped anions inside cell when channels absent
+    if (nGates < 2) {
+      for (var m = 0; m < 5; m++) s += '<circle cx="' + (16 + m * 22) + '" cy="82" r="2.2" fill="#38bdf8" opacity=".7"/>';
+      for (var n = 0; n < 4; n++) s += '<circle cx="' + (27 + n * 22) + '" cy="92" r="2.2" fill="#fbbf24" opacity=".7"/>';
+      s += '<text x="14" y="106" font-size="7.5" fill="#f87171">ions &amp; water trapped inside</text>';
+    } else {
+      s += '<text x="4" y="110" font-size="8" fill="#94a3b8">inside the cell (Cl\u207B + HCO\u2083\u207B)</text>';
+    }
     s += '</svg>';
     return s;
   }
   var INSETS = {
-    0: { t: 'Zoomed way out: gates in the cell wall', cells: [['Healthy cell', wallSVG(4, 2, 'thin'), 'salt (white dots) flows out, mucus stays thin']] },
-    7: { t: 'Fewer gates reach the wall', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'many gates'], ['F508del', wallSVG(1, 1, 'thick'), 'few gates, thick mucus']] },
-    8: { t: 'With corrector medicines', cells: [['F508del', wallSVG(1, 1, 'thick'), 'few gates'], ['+ medicines', wallSVG(3, 2, 'thin'), 'more gates, salt flows']] }
+    0: { t: 'Epithelial membrane: CFTR anion export', cells: [['Healthy cell', wallSVG(4, 2, 'thin'), 'Cl\u207B & HCO\u2083\u207B export draws H\u2082O; mucus stays thin & mobile']] },
+    7: { t: 'Airway surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'No ion/water flow: dense, sticky mucus']] },
+    8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Few gates, dehydrated'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking + gating restored']] }
   };
   function showInset(i) {
     var d = INSETS[i], box = el('inset');
@@ -639,6 +671,8 @@
     clearFx(); el('scaleTag').style.display = 'none'; el('explore').style.visibility = ''; look.close = null; fold.theta = 0; fold.shift = 0;
     viewer.spin(false);
     cur = i; stepStart = performance.now();
+    var isIllus = (i === 4 || i === 5 || i === 6);
+    el('illusBadge').style.display = isIllus ? 'block' : 'none';
     var s = STEPS[i];
     el('caption').style.opacity = 0; el('small').style.opacity = 0;
     setTimeout(function () { el('caption').innerHTML = s.cap; el('small').textContent = s.small; el('caption').style.opacity = 1; el('small').style.opacity = 1; }, 180);
