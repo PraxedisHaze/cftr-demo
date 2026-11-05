@@ -615,8 +615,15 @@
       mk.visible = false; drawMarker(); legend(['nbd1', 'rest']); showInset(null);
       // push in on the yellow piece with a slight arc for depth, then hold
       glide(5000, function (e) { return orbitV(V.nbd1, AX, lerp(-0.3, 0, e)); }, LENS_DEF, null, 0, 0.6);
-      label('The folding piece', cNBD1, { size: 16, bg: '#854d0e', off: { x: 0, y: -10 } });
-      label('NBD1', cNBD1, { size: 11, off: { x: 0, y: 14 } });
+      var camRows = rowsOfQuat(V.nbd1.slice(4, 8));
+      var camR = camRows[0], camUp = camRows[1];
+      var pStart = addv(addv(cNBD1, camR, 14), camUp, -2);
+      var pEnd = addv(addv(pStart, camR, 22), camUp, 4);
+      fx.push(viewer.addSphere({ center: pStart, radius: 1.1, color: '#facc15' }));
+      fx.push(viewer.addCylinder({ start: pStart, end: pEnd, radius: 0.38, color: '#facc15', fromCap: true, toCap: true }));
+      fx.push(viewer.addSphere({ center: pEnd, radius: 0.7, color: '#facc15' }));
+      label('The folding piece', pEnd, { size: 16, bg: '#854d0e', align: 'centerLeft', off: { x: 10, y: -10 } });
+      label('NBD1', pEnd, { size: 11, align: 'centerLeft', off: { x: 10, y: 14 } });
     },
     function () { // 3 missing link
       off.loosen = 0; off.breakup = 0; setLook({ scheme: 'nbd1', sick: 0, opacity: 1, ghost: false, split: false, sticks508: false });
