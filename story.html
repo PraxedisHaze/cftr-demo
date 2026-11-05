@@ -443,25 +443,39 @@
     regen(model); regen(m);
   }
 
-  // ---------- animation engine ----------
-  var token = 0, tickers = [];
+  // ---------- animation engine (Unified Master Transport) ----------
+  var token = 0, tickers = [], virtualTime = 0, lastFrameNow = null;
   function tween(ms, fn, done, delay) {
-    var my = token, start = null;
+    var my = token, start = null, lastT = -1;
     tickers.push(function (now) {
       if (my !== token) return true;
-      if (start === null) start = now + (delay || 0);
+      if (start === null) {
+        start = now + (delay || 0);
+        fn(0);
+        lastT = 0;
+      }
       if (now < start) return false;
       var t = Math.min(1, (now - start) / ms);
-      fn(t);
+      if (t !== lastT) {
+        fn(t);
+        lastT = t;
+      }
       if (t >= 1) { if (done) done(); return true; }
       return false;
     });
   }
   function forever(fn) { var my = token; tickers.push(function (now) { if (my !== token) return true; fn(now); return false; }); }
   function loop(now) {
+    if (lastFrameNow === null) lastFrameNow = now;
+    var dt = Math.min(100, Math.max(0, now - lastFrameNow));
+    lastFrameNow = now;
+    if (playing) {
+      virtualTime += dt;
+    }
+    var vNow = virtualTime;
     var run = tickers; tickers = [];
-    var keep = run.filter(function (f) { return !f(now); });
-    tickers = keep.concat(tickers); // keep tickers added by callbacks during this frame
+    var keep = run.filter(function (f) { return !f(vNow); });
+    tickers = keep.concat(tickers);
     requestAnimationFrame(loop);
   }
   requestAnimationFrame(loop);
@@ -678,8 +692,12 @@
           viewer.setView(v); viewer.render();
         }, function () {
           clearFx(); viewer.render();
-          var t0 = performance.now();
-          forever(function (now) { viewer.setView(insideView(0.12 * Math.sin((now - t0) / 1600))); viewer.render(); });
+          var t0 = null;
+          forever(function (now) {
+            if (t0 === null) t0 = now;
+            viewer.setView(insideView(0.12 * Math.sin((now - t0) / 1600)));
+            viewer.render();
+          });
         });
       }, 3200);
     },
@@ -751,7 +769,7 @@
     clearLabels(); counter(false); exploring = false;
     clearFx(); el('scaleTag').style.display = 'none'; el('explore').style.visibility = ''; look.close = null; fold.theta = 0; fold.shift = 0;
     viewer.spin(false);
-    cur = i; stepStart = performance.now();
+    cur = i; stepStart = virtualTime;
     var isIllus = (i === 4 || i === 5 || i === 6);
     el('illusBadge').style.display = isIllus ? 'block' : 'none';
     var s = STEPS[i];
@@ -762,18 +780,22 @@
     el('btnBack').disabled = i === 0; el('btnNext').disabled = i === STEPS.length - 1;
     if (!fromPlay) setPlaying(false);
     SCENES[i]();
-    // progress bar + autoplay ticker
+    // progress bar + autoplay ticker driven strictly by virtual master time
     forever(function (now) {
-      var t = Math.min(1, (now - stepStart) / (STEPS[cur].ms || STEP_MS));
-      el('prog').firstChild.style.width = (playing ? t * 100 : 0) + '%';
-      if (playing && t >= 1) { if (cur < STEPS.length - 1) go(cur + 1, true); else setPlaying(false); }
+      var dur = STEPS[cur].ms || STEP_MS;
+      var t = Math.min(1, Math.max(0, (now - stepStart) / dur));
+      el('prog').firstChild.style.width = (t * 100) + '%';
+      if (playing && t >= 1) {
+        if (cur < STEPS.length - 1) go(cur + 1, true);
+        else setPlaying(false);
+      }
     });
     window.storyDemo.step = i;
     if (typeof updateCamHUD === 'function') setTimeout(updateCamHUD, 200);
   }
   function setPlaying(on) {
-    playing = on; el('btnPlay').innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Play story';
-    if (on) stepStart = performance.now();
+    playing = on;
+    el('btnPlay').innerHTML = on ? '&#10074;&#10074; Pause' : '&#9654; Play story';
     syncSVGAnimations(on);
   }
 
@@ -782,9 +804,15 @@
   el('btnNext').addEventListener('click', function () { go(cur + 1); });
   el('btnBack').addEventListener('click', function () { go(cur - 1); });
   el('btnPlay').addEventListener('click', function () {
-    if (playing) { setPlaying(false); return; }
-    setPlaying(true);
-    if (cur === STEPS.length - 1) go(0, true); else stepStart = performance.now();
+    if (playing) {
+      setPlaying(false);
+      return;
+    }
+    if (cur === STEPS.length - 1) {
+      go(0, true);
+    } else {
+      setPlaying(true);
+    }
   });
   document.addEventListener('keydown', function (e) {
     if (e.key === 'ArrowRight') go(cur + 1);
@@ -852,17 +880,9 @@
     setPlaying(false);
     slideTarget = Math.max(1, Math.min(1480, Math.round(r)));
     syncSlider(slideTarget);
-    if (!exploring) {
-      exploring = true; mk.visible = true; mk.opacity = 1; mk.halo = 0; mk.r = 2.4;
-      if (!(mk.pos >= 1)) mk.pos = slideTarget;
-      var last = performance.now();
-      forever(function (now) {
-        var dt = Math.min(0.1, (now - last) / 1000); last = now;
-        var d = slideTarget - mk.pos;
-        if (Math.abs(d) < 0.01) { if (mk.pos !== slideTarget) { mk.pos = slideTarget; drawMarker(); } return; }
-        mk.pos += d * Math.min(1, dt * 6); drawMarker();
-      });
-    }
+    mk.visible = true; mk.opacity = 1; mk.halo = 0; mk.r = 2.4;
+    mk.pos = slideTarget;
+    drawMarker();
   }
   el('resSlider').addEventListener('input', function () {
     var r = sliderToRes(parseInt(this.value, 10));
