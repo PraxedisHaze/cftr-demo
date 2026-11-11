@@ -32,6 +32,8 @@
   .row label { color:var(--muted); font-size:12.5px; }
   select, button.small { background:#0b1324; color:var(--text); border:1px solid #334155; border-radius:6px; padding:5px 8px; font-size:12.5px; cursor:pointer; }
   input[type=range] { width:100%; accent-color:var(--hot); }
+  .vernier-host { position:relative; width:100%; height:44px; margin:6px 0 4px; touch-action:none; user-select:none; -webkit-user-select:none; }
+  input.vernier-native { position:absolute; width:1px; height:1px; padding:0; margin:0; overflow:hidden; clip:rect(0,0,0,0); border:0; opacity:0; pointer-events:none; }
   #resLabel { font-variant-numeric: tabular-nums; color:var(--text); }
   .modeinfo { color:var(--muted); font-size:12.5px; margin-top:6px; min-height:38px; }
   .note { color:var(--muted); font-size:12px; }
@@ -79,8 +81,9 @@
 
     <h2>Residue</h2>
     <div class="row" style="justify-content:space-between"><span id="resLabel">Phe 508</span><button class="small" id="btn508">Jump to F508</button></div>
-    <input type="range" id="resSlider" min="1" max="1480" value="508" aria-label="Residue number">
-    <div class="note">Drag to fly the highlight along the sequence. Surfaces and contacts refresh when you release.</div>
+    <div class="vernier-host" id="vernierHost"></div>
+    <input type="range" id="resSlider" class="vernier-native" min="1" max="1480" value="508" tabindex="-1" aria-hidden="true">
+    <div class="note">Hover or drag: the fisheye lens magnifies around the pointer so a single residue is easy to hit. The orange mark is 508. Surfaces and contacts refresh when you release.</div>
 
     <h2>Model</h2>
     <div class="row">
@@ -119,6 +122,7 @@
   <div>Timothy Drake and The Braid Collaborative</div>
 </footer>
 
+<script src="vernier_residue.js"></script>
 <script src="lib/3Dmol-min.js"></script>
 <script>
   if (typeof $3Dmol === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"><\/script>'); }
@@ -164,6 +168,7 @@
     minRes = 1e9; maxRes = -1e9;
     atoms.forEach(function (a) { caIndex[a.resi] = a; if (a.resi < minRes) minRes = a.resi; if (a.resi > maxRes) maxRes = a.resi; });
     var s = el('resSlider'); s.min = minRes; s.max = maxRes;
+    if (residueVernier) residueVernier.setRange(minRes, maxRes);
     el('trimLow').disabled = which !== 'af';
     el('trimLabel').style.opacity = which === 'af' ? 1 : 0.45;
     el('hudStruct').textContent = which === 'af' ? 'AlphaFold AF-P13569-F1 (v6)' : 'PDB 6MSM (cryo-EM)';
@@ -261,8 +266,26 @@
     b.addEventListener('click', function () { setMode(b.dataset.mode); });
   });
   var slider = el('resSlider');
+  var residueVernier = null;
+  function onVernierInput(r) {
+    state.resi = r;
+    slider.value = r;
+    if (labels.length) { labels.forEach(function (l) { viewer.removeLabel(l); }); labels = []; }
+    updateMarker();
+  }
+  if (window.ResidueVernier) {
+    residueVernier = window.ResidueVernier.attach({
+      host: '#vernierHost',
+      min: 1, max: 1480, value: 508, snapRes: 508,
+      color: COLORS.hot,
+      ariaLabel: 'Residue number',
+      onInput: onVernierInput,
+      onChange: function (r) { state.resi = r; slider.value = r; applyMode(state.mode === 'interface'); }
+    });
+  }
   slider.addEventListener('input', function () {
     state.resi = parseInt(slider.value, 10);
+    if (residueVernier) residueVernier.setValue(state.resi, true);
     if (labels.length) { labels.forEach(function (l) { viewer.removeLabel(l); }); labels = []; } // labels are cheap; surfaces are left alone while dragging
     updateMarker();
   });
@@ -277,12 +300,13 @@
   function setMode(m) { state.mode = m; applyMode(true); }
   function setResidue(r, commit) {
     state.resi = r; slider.value = r;
+    if (residueVernier) residueVernier.setValue(r, true);
     if (commit) applyMode(state.mode === 'interface'); else updateMarker();
   }
   function setSpin(on) { state.spin = on; el('spin').checked = on; viewer.spin(on ? 'y' : false, 0.6); }
 
   // Small public API (used for scripted screenshots / video capture).
-  window.cftrDemo = { setMode: setMode, setResidue: setResidue, setSpin: setSpin, rotate: function (deg, axis) { viewer.rotate(deg, axis || 'y'); viewer.render(); }, viewer: viewer, state: state };
+  window.cftrDemo = { setMode: setMode, setResidue: setResidue, setSpin: setSpin, getResidue: function () { return state.resi; }, vernier: residueVernier, rotate: function (deg, axis) { viewer.rotate(deg, axis || 'y'); viewer.render(); }, viewer: viewer, state: state };
 
   loadStructure('af');
   el('loading').style.display = 'none';
