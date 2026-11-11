@@ -183,8 +183,8 @@
 
   var STEPS = [
     { name:'The channel', ms:9500,
-      cap:'CFTR is an essential <em>ion channel</em> spanning the apical cell membrane. It conducts <span class="b">chloride</span> and <span class="y">bicarbonate</span> ions outward, drawing water along to keep airway mucus hydrated, thin, and clear.',
-      small:'One CFTR protein: 1,480 amino acids forming an ATP-gated anion channel. Exporting chloride (Cl⁻) and bicarbonate (HCO₃⁻) generates the osmotic pull that hydrates the mucosal surface; bicarbonate also holds airway surface pH near neutral — in CF it turns acidic.' },
+      cap:'CFTR is an essential <em>ion channel</em> spanning the apical cell membrane. When its gate opens, <span class="b">chloride</span> and <span class="y">bicarbonate</span> ions flow out through it on their own, down their gradient, drawing water along to keep airway mucus hydrated, thin, and clear.',
+      small:'One CFTR protein: 1,480 amino acids forming an ATP-gated anion channel - a gated pore, not a pump. The outward flow of chloride (Cl⁻) and bicarbonate (HCO₃⁻) creates the osmotic pull that hydrates the mucosal surface; bicarbonate also holds airway surface pH near neutral — in CF it turns acidic.' },
     { name:'The motor domain', ms:9000,
       cap:'To function, the channel must fold into an intricate 3D machine. The <span class="y">nucleotide-binding domain (NBD1)</span> is one of two ATP-binding pieces that work the gate: when ATP binds both, they clamp together and the pore opens.',
       small:'Yellow: NBD1 (nucleotide-binding domain 1, residues 423–646). Once the R domain is phosphorylated, ATP binds NBD1 and NBD2, the two clamp together and the gate opens; ATP hydrolysis at NBD2 releases the clamp and the gate closes. ATP works the gate; the ions flow down their own gradient.' },
@@ -557,7 +557,7 @@
     return s;
   }
   var INSETS = {
-    0: { t: 'Apical Epithelium: Ion & Water Export', cells: [['Healthy Cell', wallSVG(4, 2, 'thin'), 'Chloride & Bicarbonate draw water; mucus stays hydrated and mobile']] },
+    0: { t: 'Apical Epithelium: Ion & Water Flow', cells: [['Healthy Cell', wallSVG(4, 2, 'thin'), 'Chloride & Bicarbonate draw water; mucus stays hydrated and mobile']] },
     7: { t: 'Apical Surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'Little ion efflux: dry, thick mucus']] },
     8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Channels degraded'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking and gating improved']] }
   };
