@@ -14,20 +14,11 @@
  * 
  * Usage (vertical chat minimap — unchanged):
  *   <script src="vernier_scrubber_appling.js"></script>
- *   VernierScrubber.attach({
- *       container: '#chat',
- *       turnSelector: '.message'
- *   });
+ *   VernierScrubber.attach({ container: '#chat', turnSelector: '.message' });
  *
- * Usage (horizontal range slider):
- *   VernierScrubber.attachRange({
- *       container: '#host',
- *       input: '#residueSlider',
- *       min: 1, max: 1480, value: 508,
- *       markers: [{ value: 508, color: '#e33', label: '508' }],
- *       snap: [508],
- *       onChange: function (v) {}
- *   });
+ * Usage (slider fish-eye): add the script; every input[type=range] gets a lens.
+ *   <script src="vernier_scrubber_appling.js"></script>
+ *   Opt out with data-vernier="off". Markers/snap: data-vernier-markers="508" data-vernier-snap="508".
  */
 
 (function (root, factory) {
@@ -540,7 +531,7 @@
         var style = document.createElement('style');
         style.id = 'vernier-range-appling-css';
         style.textContent = [
-            '.vernier-range-host { position: relative; width: 100%; height: 44px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: ew-resize; box-sizing: border-box; }',
+            '.vernier-range-host { position: relative; width: 100%; height: 44px; margin: 6px 0 4px; touch-action: none; user-select: none; -webkit-user-select: none; cursor: ew-resize; box-sizing: border-box; }',
             '.vernier-range-host.active-lens { cursor: ew-resize; }',
             '.vernier-range-host canvas { display: block; width: 100%; height: 100%; pointer-events: none; }',
             'input.vernier-range-native { position: absolute; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0,0,0,0); border: 0; opacity: 0; pointer-events: none; }'
@@ -589,8 +580,7 @@
         if (hostOpt) {
             this.host = typeof hostOpt === 'string' ? document.querySelector(hostOpt) : hostOpt;
         } else if (this.input && this.input.parentNode) {
-            this.host = document.createElement('div');
-            this.input.parentNode.insertBefore(this.host, this.input);
+            this.host = resolveRangeHost(this.input);
         }
         if (!this.host) {
             console.warn('[VernierScrubber] attachRange: container/input not found');
@@ -600,6 +590,7 @@
         this.focusX = null;
         this.dragging = false;
         this._pointerId = null;
+        this._fromVernier = false;
 
         this.init();
     }
@@ -635,8 +626,11 @@
         }
 
         this.value = Math.round(clamp(this.value, this.min, this.max));
-        this._syncInput();
+        this._syncInput(false);
         this._syncAria();
+        hookRangeInput(this);
+        if (this.input) this.input._vernierRange = this;
+        this.host._vernierRange = this;
 
         this._onPtrDown = this._onPtrDown.bind(this);
         this._onPtrMove = this._onPtrMove.bind(this);
@@ -714,8 +708,29 @@
         return bestSnap != null ? bestSnap : v;
     };
 
-    VernierRangeInstance.prototype._syncInput = function () {
-        if (this.input) this.input.value = String(this.value);
+    VernierRangeInstance.prototype._syncInput = function (dispatchInput) {
+        if (!this.input) return;
+        this._fromVernier = true;
+        try {
+            var proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+            if (proto && proto.set) proto.set.call(this.input, String(this.value));
+            else this.input.value = String(this.value);
+            if (dispatchInput) {
+                this.input.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        } finally {
+            this._fromVernier = false;
+        }
+    };
+
+    VernierRangeInstance.prototype._dispatchChange = function () {
+        if (!this.input) return;
+        this._fromVernier = true;
+        try {
+            this.input.dispatchEvent(new Event('change', { bubbles: true }));
+        } finally {
+            this._fromVernier = false;
+        }
     };
 
     VernierRangeInstance.prototype._syncAria = function () {
@@ -729,7 +744,7 @@
         var next = Math.round(clamp(v, this.min, this.max));
         var changed = next !== this.value;
         this.value = next;
-        this._syncInput();
+        this._syncInput(changed && !silent);
         this._syncAria();
         this.redraw();
         if (!silent && changed) this.onInput(this.value);
@@ -740,9 +755,19 @@
     VernierRangeInstance.prototype.setRange = function (min, max) {
         this.min = Number(min);
         this.max = Number(max);
-        if (this.input) { this.input.min = this.min; this.input.max = this.max; }
-        this.host.setAttribute('aria-valuemin', String(this.min));
-        this.host.setAttribute('aria-valuemax', String(this.max));
+        if (this.input) {
+            this._fromVernier = true;
+            try {
+                this.input.min = this.min;
+                this.input.max = this.max;
+            } finally {
+                this._fromVernier = false;
+            }
+        }
+        if (this.host) {
+            this.host.setAttribute('aria-valuemin', String(this.min));
+            this.host.setAttribute('aria-valuemax', String(this.max));
+        }
         this.setValue(this.value, true);
     };
 
@@ -792,7 +817,10 @@
         this.dragging = false;
         this._pointerId = null;
         try { this.host.releasePointerCapture(e.pointerId); } catch (err) {}
-        if (wasDragging) this.onChange(this.value);
+        if (wasDragging) {
+            this.onChange(this.value);
+            this._dispatchChange();
+        }
         if (!this.host.matches(':hover')) {
             this.focusX = null;
             this.host.classList.remove('active-lens');
@@ -822,15 +850,16 @@
         else if (e.key === 'ArrowRight' || e.key === 'ArrowUp') step = 1;
         else if (e.key === 'PageDown') step = -10;
         else if (e.key === 'PageUp') step = 10;
-        else if (e.key === 'Home') { this.setValue(this.min, false); this.onChange(this.value); e.preventDefault(); return; }
-        else if (e.key === 'End') { this.setValue(this.max, false); this.onChange(this.value); e.preventDefault(); return; }
+        else if (e.key === 'Home') { this.setValue(this.min, false); this.onChange(this.value); this._dispatchChange(); e.preventDefault(); return; }
+        else if (e.key === 'End') { this.setValue(this.max, false); this.onChange(this.value); this._dispatchChange(); e.preventDefault(); return; }
         else if ((e.key === 'Enter' || e.key === ' ') && this.snap.length) {
-            this.setValue(this.snap[0], false); this.onChange(this.value); e.preventDefault(); return;
+            this.setValue(this.snap[0], false); this.onChange(this.value); this._dispatchChange(); e.preventDefault(); return;
         }
         if (!step) return;
         e.preventDefault();
         this.setValue(this.value + step, false);
         this.onChange(this.value);
+        this._dispatchChange();
     };
 
     VernierRangeInstance.prototype._onResize = function () {
@@ -970,7 +999,171 @@
     };
 
 
+
+    function parseCsvNumbers(raw) {
+        if (!raw) return [];
+        var out = [];
+        String(raw).split(/[\s,]+/).forEach(function (part) {
+            if (!part) return;
+            var n = Number(part.split(':')[0]);
+            if (isFinite(n)) out.push(n);
+        });
+        return out;
+    }
+
+    function parseMarkersAttr(raw) {
+        if (!raw) return [];
+        var out = [];
+        String(raw).split(/[\s,]+/).forEach(function (part) {
+            if (!part) return;
+            var bits = part.split(':');
+            var n = Number(bits[0]);
+            if (!isFinite(n)) return;
+            var rec = { value: n, label: String(Math.round(n)) };
+            if (bits[1]) rec.color = bits[1];
+            out.push(rec);
+        });
+        return out;
+    }
+
+    function isRangeInput(el) {
+        return !!(el && el.nodeType === 1 && el.tagName === 'INPUT' && String(el.type).toLowerCase() === 'range');
+    }
+
+    function optedOut(el) {
+        return !!(el && String(el.getAttribute('data-vernier') || '').toLowerCase() === 'off');
+    }
+
+    function resolveRangeHost(input) {
+        var parent = input.parentNode;
+        if (parent && parent.nodeType === 1 && (parent.classList.contains('vernier-range-host') || parent.classList.contains('vernier-host'))) {
+            return parent;
+        }
+        var prev = input.previousElementSibling;
+        if (prev && prev.classList.contains('vernier-host') && !prev.querySelector('canvas')) {
+            prev.appendChild(input);
+            return prev;
+        }
+        var host = document.createElement('div');
+        parent.insertBefore(host, input);
+        host.appendChild(input);
+        return host;
+    }
+
+    function hookRangeInput(inst) {
+        var input = inst.input;
+        if (!input || input._vernierHooked) return;
+        input._vernierHooked = true;
+
+        function hookProp(name, onSet) {
+            var proto = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, name);
+            if (!proto || !proto.get || !proto.set) return;
+            Object.defineProperty(input, name, {
+                configurable: true,
+                enumerable: proto.enumerable,
+                get: function () { return proto.get.call(this); },
+                set: function (v) {
+                    proto.set.call(this, v);
+                    if (inst._fromVernier) return;
+                    onSet();
+                }
+            });
+        }
+
+        hookProp('value', function () { inst.setValue(Number(input.value), true); });
+        hookProp('min', function () { inst.setRange(Number(input.min), Number(input.max)); });
+        hookProp('max', function () { inst.setRange(Number(input.min), Number(input.max)); });
+
+        input.addEventListener('input', function () {
+            if (inst._fromVernier) return;
+            inst.setValue(Number(input.value), true);
+        });
+        input.addEventListener('change', function () {
+            if (inst._fromVernier) return;
+            inst.setValue(Number(input.value), true);
+        });
+    }
+
+    function optionsFromRangeInput(input) {
+        var markers = parseMarkersAttr(input.getAttribute('data-vernier-markers'));
+        var snap = parseCsvNumbers(input.getAttribute('data-vernier-snap'));
+        var aria = input.getAttribute('aria-label') || input.getAttribute('title') || '';
+        if (!aria && input.id) {
+            var lab = document.querySelector('label[for="' + input.id + '"]');
+            if (lab) aria = (lab.textContent || '').trim();
+        }
+        return {
+            input: input,
+            min: input.min === '' ? undefined : Number(input.min),
+            max: input.max === '' ? undefined : Number(input.max),
+            value: input.value === '' ? undefined : Number(input.value),
+            markers: markers,
+            snap: snap,
+            ariaLabel: aria || 'Value'
+        };
+    }
+
+    function attachRangeInput(input) {
+        if (!isRangeInput(input) || optedOut(input)) return null;
+        if (input._vernierRange) return input._vernierRange;
+        var inst = new VernierRangeInstance(optionsFromRangeInput(input));
+        if (inst && inst.host) instances.push(inst);
+        return inst && inst.host ? inst : null;
+    }
+
+    function scanForRangeInputs(root) {
+        if (!root || !root.querySelectorAll) {
+            if (isRangeInput(root)) attachRangeInput(root);
+            return;
+        }
+        if (isRangeInput(root)) attachRangeInput(root);
+        var list = root.querySelectorAll('input[type="range"]');
+        for (var i = 0; i < list.length; i++) attachRangeInput(list[i]);
+    }
+
+    var autoAttachStarted = false;
+    function startRangeAutoAttach() {
+        if (autoAttachStarted || typeof document === 'undefined') return;
+        autoAttachStarted = true;
+        scanForRangeInputs(document);
+        if (typeof MutationObserver === 'undefined' || !document.documentElement) return;
+        var mo = new MutationObserver(function (muts) {
+            for (var i = 0; i < muts.length; i++) {
+                var m = muts[i];
+                if (m.type === 'attributes') {
+                    if (isRangeInput(m.target) && !optedOut(m.target)) attachRangeInput(m.target);
+                    continue;
+                }
+                var nodes = m.addedNodes || [];
+                for (var j = 0; j < nodes.length; j++) scanForRangeInputs(nodes[j]);
+            }
+        });
+        mo.observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['type', 'data-vernier']
+        });
+    }
+
+    function bootRangeAutoAttach() {
+        if (typeof document === 'undefined') return;
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startRangeAutoAttach);
+        } else {
+            startRangeAutoAttach();
+        }
+    }
+
+    function instanceFor(el) {
+        if (typeof el === 'string') el = document.querySelector(el);
+        if (!el) return null;
+        return el._vernierRange || null;
+    }
+
     // Public API
+    bootRangeAutoAttach();
+
     return {
         attach: function (options) {
             var inst = new VernierInstance(options);
@@ -979,9 +1172,10 @@
         },
         attachRange: function (options) {
             var inst = new VernierRangeInstance(options);
-            instances.push(inst);
+            if (inst && inst.host) instances.push(inst);
             return inst;
         },
+        instanceFor: instanceFor,
         instances: instances
     };
 }));
