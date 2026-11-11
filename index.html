@@ -122,7 +122,7 @@
   <div>Timothy Drake and The Braid Collaborative</div>
 </footer>
 
-<script src="vernier_residue.js"></script>
+<script src="vernier_scrubber_appling.js"></script>
 <script src="lib/3Dmol-min.js"></script>
 <script>
   if (typeof $3Dmol === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"><\/script>'); }
@@ -273,11 +273,14 @@
     if (labels.length) { labels.forEach(function (l) { viewer.removeLabel(l); }); labels = []; }
     updateMarker();
   }
-  if (window.ResidueVernier) {
-    residueVernier = window.ResidueVernier.attach({
-      host: '#vernierHost',
-      min: 1, max: 1480, value: 508, snapRes: 508,
-      color: COLORS.hot,
+  if (window.VernierScrubber && VernierScrubber.attachRange) {
+    residueVernier = VernierScrubber.attachRange({
+      container: '#vernierHost',
+      input: '#resSlider',
+      min: 1, max: 1480, value: 508,
+      markers: [{ value: 508, color: COLORS.hot, label: '508' }],
+      snap: [508],
+      accentColor: COLORS.hot,
       ariaLabel: 'Residue number',
       onInput: onVernierInput,
       onChange: function (r) { state.resi = r; slider.value = r; applyMode(state.mode === 'interface'); }

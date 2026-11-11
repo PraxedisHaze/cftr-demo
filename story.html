@@ -136,7 +136,7 @@
     </div>
     <div class="trackWrap">
       <div class="vernier-host" id="vernierHost"></div>
-      <input type="range" id="resSlider" class="vernier-native" min="0" max="1000" value="500" step="1" tabindex="-1" aria-hidden="true">
+      <input type="range" id="resSlider" class="vernier-native" min="1" max="1480" value="508" step="1" tabindex="-1" aria-hidden="true">
     </div>
     <div class="row">
       <div id="exploreLabel">Building block <b id="resNum">508</b></div>
@@ -171,7 +171,7 @@
   <div>Timothy Drake and The Braid Collaborative</div>
 </footer>
 
-<script src="vernier_residue.js"></script>
+<script src="vernier_scrubber_appling.js"></script>
 <script src="lib/3Dmol-min.js"></script>
 <script>
   if (typeof $3Dmol === 'undefined') { document.write('<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.2/build/3Dmol-min.js"><\/script>'); }
@@ -604,7 +604,7 @@
   }
   function syncSlider(r) {
     var res = Math.max(1, Math.min(1480, Math.round(r)));
-    el('resSlider').value = resToSlider(res);
+    el('resSlider').value = res;
     var numEl = el('resNum');
     if (numEl) numEl.textContent = res;
     else el('exploreLabel').innerHTML = 'Building block <b>' + res + '</b>';
@@ -905,14 +905,14 @@
     mk.pos = slideTarget;
     drawMarker();
   }
-  if (window.ResidueVernier) {
-    residueVernier = window.ResidueVernier.attach({
-      host: '#vernierHost',
-      min: 1, max: 1480, value: 508, snapRes: 508,
-      sliderMax: 1000,
-      resToSlider: resToSlider,
-      sliderToRes: sliderToRes,
-      color: C.hot,
+  if (window.VernierScrubber && VernierScrubber.attachRange) {
+    residueVernier = VernierScrubber.attachRange({
+      container: '#vernierHost',
+      input: '#resSlider',
+      min: 1, max: 1480, value: 508,
+      markers: [{ value: 508, color: C.hot, label: '508' }],
+      snap: [508],
+      accentColor: C.hot,
       ariaLabel: 'Building block number',
       onInput: function (r) { setExploreResidue(r); }
     });
@@ -925,7 +925,7 @@
     }
   };
   el('resSlider').addEventListener('input', function () {
-    var r = sliderToRes(parseInt(this.value, 10));
+    var r = parseInt(this.value, 10);
     setExploreResidue(r);
   });
   el('btnSnap508').addEventListener('click', function () { setExploreResidue(508); });
