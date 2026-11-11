@@ -87,7 +87,7 @@
 <body>
 <header>
   <h1>CFTR <span class="hot">F508del</span> &middot; the story in 9 steps</h1>
-  <span class="sub">What goes wrong in the most common form of cystic fibrosis</span>
+  <span class="sub">Where we were, where we are, and where treatment is heading in the most common form of cystic fibrosis</span>
   <a href="index.html">Open the detailed explorer &rarr;</a>
 </header>
 <div id="stage">
@@ -189,17 +189,17 @@
       cap:'During normal protein synthesis, watch the <span class="y">NBD1 engine</span> rotate smoothly into alignment until <em>Phe508</em> locks securely into its pocket on <span class="b">intracellular loop 4</span>.',
       small:'Atom-scale view of the NBD1:ICL4 interface. The final docked conformation comes from Cryo-EM coordinates (PDB 6MSM) and AlphaFold — the folding motion itself is illustrative, not a simulated trajectory.' },
     { name:'The F508del defect', ms:14000,
-      cap:'Now observe the same fold with <em>Phe508 absent</em>. The <span class="y">domain</span> swings toward the interface, but with the pocket vacant, the joint cannot lock. It wobbles and destabilizes.',
-      small:'Artistic schematic with Phe508 absent (F508del). The glowing ring highlights the unoccupied ICL4 pocket that fails to achieve thermodynamic stability.' },
+      cap:'Now observe the same fold with <em>Phe508 absent</em>. The <span class="y">domain</span> swings toward the interface, and with the pocket vacant the joint stays loose. It wobbles and destabilizes.',
+      small:'Artistic schematic with Phe508 absent (F508del). The glowing ring highlights the unoccupied ICL4 pocket, which stays thermodynamically unstable.' },
     { name:'Domain decoupling', ms:10000,
-      cap:'Without Phe508 anchoring the contact, the interface fails to hold. The domains decouple, and the channel cannot maintain its functional 3D shape.',
+      cap:'With the Phe508 anchor absent, the interface stays loose. The domains decouple, and the channel loses its functional 3D shape.',
       small:'Artistic illustration visualizing domain decoupling: the faint blue ghost is the normal wild-type conformation, showing the loss of domain contacts.' },
     { name:'Quality control destruction', ms:9500,
-      cap:'Endoplasmic reticulum quality control flags the misfolded protein and <em>destroys it</em>. Without functional channels at the surface, chloride and bicarbonate cannot reach the airway surface, water does not follow, and mucus dries into an obstructive gel.',
-      small:'Misfolded CFTR is intercepted by ERAD and degraded by the 26S proteasome. Without bicarbonate to alkalize pH and uncoil mucins, and without chloride-driven osmosis, mucus collapses into a dense, stagnant gel that traps bacteria.' },
-    { name:'Targeted rescue', ms:10500,
-      cap:'Small-molecule <span class="y">correctors</span> chaperone the protein so it can fold and reach the surface, while <span class="b">potentiators</span> hold the gate open longer so chloride and bicarbonate can flow.',
-      small:'Trikafta = elexacaftor + tezacaftor (folding and trafficking correctors) + ivacaftor (gating potentiator that increases open probability). For education only; not medical advice.' }
+      cap:'Endoplasmic reticulum quality control flags most of the misfolded protein and <em>destroys it</em>, so little F508del CFTR reaches the surface. Channels that do arrive open less often and are unstable. Little chloride and bicarbonate reach the airway surface, the osmotic pull stays weak, and mucus dries into an obstructive gel.',
+      small:'Most misfolded CFTR is intercepted by ERAD and degraded by the 26S proteasome. Residual surface channels have reduced open probability and are unstable. Scarce bicarbonate leaves airway pH acidic and mucins coiled; scarce chloride leaves osmosis too weak, and mucus collapses into a dense, stagnant gel that traps bacteria.' },
+    { name:'Modulator treatment', ms:16000,
+      cap:'Where we were: little F508del CFTR reached the surface, and residual channels opened rarely. Where we are: CFTR modulators — the triple combination <span class="y">elexacaftor/tezacaftor/ivacaftor</span> — help the protein fold, traffic to the surface, and <span class="b">open more often</span>, restoring much of the chloride flow for most people with at least one F508del copy. Where we are going: treatments for every CFTR mutation, including people current modulators have yet to reach.',
+      small:'The triple combination (Trikafta / elexacaftor + tezacaftor + ivacaftor) pairs folding and trafficking correctors with a gating potentiator that increases open probability. For education only; not medical advice.' }
   ];
 
   function el(id) { return document.getElementById(id); }
@@ -549,8 +549,8 @@
   }
   var INSETS = {
     0: { t: 'Apical Epithelium: Ion & Water Export', cells: [['Healthy Cell', wallSVG(4, 2, 'thin'), 'Chloride & Bicarbonate draw water; mucus stays hydrated and mobile']] },
-    7: { t: 'Apical Surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'No ion efflux: dry, thick mucus']] },
-    8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Channels degraded'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking & gating restored']] }
+    7: { t: 'Apical Surface in F508del', cells: [['Healthy', wallSVG(4, 2, 'thin'), 'Hydrated surface liquid'], ['F508del', wallSVG(1, 0, 'thick'), 'Little ion efflux: dry, thick mucus']] },
+    8: { t: 'Restoration with Trikafta', cells: [['F508del', wallSVG(1, 0, 'thick'), 'Channels degraded'], ['+ Trikafta', wallSVG(3, 2, 'thin'), 'Trafficking and gating improved']] }
   };
   function syncSVGAnimations(on) {
     var svgs = document.querySelectorAll('#inset svg');
